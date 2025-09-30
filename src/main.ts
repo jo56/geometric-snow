@@ -216,75 +216,26 @@ class Killer7Scene {
   private createBackground(): void {
     const material = this.createBinaryToonMaterial();
 
-    // Create patterned background walls arranged in a circle around the scene
-    const wallCount = 12;
-    const radius = 80;
-
-    for (let i = 0; i < wallCount; i++) {
-      const angle = (i / wallCount) * Math.PI * 2;
-      const x = Math.cos(angle) * radius;
-      const z = Math.sin(angle) * radius;
-
-      // Large backdrop walls with patterns
-      const wall = new THREE.Mesh(new THREE.BoxGeometry(15, 25, 2), material);
-      wall.position.set(x, 12, z);
-      wall.lookAt(0, 12, 0); // Face inward toward the scene
-      wall.castShadow = true;
-      this.scene.add(wall);
-      this.geometryObjects.push(wall);
-
-      // Add pattern elements to walls
-      if (i % 2 === 0) {
-        // Vertical stripes
-        for (let j = 0; j < 3; j++) {
-          const stripe = new THREE.Mesh(new THREE.BoxGeometry(1, 20, 0.5), material);
-          stripe.position.set(x * 0.98, 12, z * 0.98);
-          stripe.position.x += Math.cos(angle + Math.PI/2) * (j - 1) * 4;
-          stripe.position.z += Math.sin(angle + Math.PI/2) * (j - 1) * 4;
-          stripe.lookAt(0, 12, 0);
-          stripe.castShadow = true;
-          this.scene.add(stripe);
-          this.geometryObjects.push(stripe);
-        }
-      } else {
-        // Cross patterns
-        const cross1 = new THREE.Mesh(new THREE.BoxGeometry(8, 1, 0.5), material);
-        const cross2 = new THREE.Mesh(new THREE.BoxGeometry(1, 8, 0.5), material);
-
-        cross1.position.set(x * 0.98, 12, z * 0.98);
-        cross2.position.set(x * 0.98, 12, z * 0.98);
-
-        cross1.lookAt(0, 12, 0);
-        cross2.lookAt(0, 12, 0);
-
-        cross1.castShadow = true;
-        cross2.castShadow = true;
-
-        this.scene.add(cross1);
-        this.scene.add(cross2);
-        this.geometryObjects.push(cross1);
-        this.geometryObjects.push(cross2);
-      }
-    }
-
-    // Add floating geometric shapes in the background
-    for (let i = 0; i < 20; i++) {
+    // Create scattered background elements instead of a wall dome
+    // Add floating geometric shapes in the far background
+    for (let i = 0; i < 15; i++) {
       const shapes = [
-        new THREE.BoxGeometry(2, 2, 2),
-        new THREE.SphereGeometry(1, 8, 6),
-        new THREE.ConeGeometry(1, 2, 6),
-        new THREE.TorusGeometry(1, 0.3, 6, 12)
+        new THREE.BoxGeometry(3, 3, 3),
+        new THREE.SphereGeometry(1.5, 8, 6),
+        new THREE.ConeGeometry(1.5, 3, 6),
+        new THREE.CylinderGeometry(1, 1, 4, 8)
       ];
 
       const geometry = shapes[Math.floor(Math.random() * shapes.length)];
       const shape = new THREE.Mesh(geometry, material);
 
+      // Place them far away and low to avoid blocking view
       const angle = Math.random() * Math.PI * 2;
-      const distance = 50 + Math.random() * 20;
+      const distance = 70 + Math.random() * 30; // Further away
 
       shape.position.set(
         Math.cos(angle) * distance,
-        5 + Math.random() * 15,
+        -2 + Math.random() * 8, // Lower height range to avoid blocking
         Math.sin(angle) * distance
       );
 
@@ -297,6 +248,23 @@ class Killer7Scene {
       shape.castShadow = true;
       this.scene.add(shape);
       this.geometryObjects.push(shape);
+    }
+
+    // Add some distant architectural elements (optional)
+    for (let i = 0; i < 6; i++) {
+      const pillar = new THREE.Mesh(new THREE.BoxGeometry(2, 12, 2), material);
+      const angle = (i / 6) * Math.PI * 2;
+      const distance = 90;
+
+      pillar.position.set(
+        Math.cos(angle) * distance,
+        6,
+        Math.sin(angle) * distance
+      );
+
+      pillar.castShadow = true;
+      this.scene.add(pillar);
+      this.geometryObjects.push(pillar);
     }
   }
 
