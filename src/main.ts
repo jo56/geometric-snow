@@ -86,7 +86,7 @@ class Killer7Scene {
       if (e.key === 'p' || e.key === 'P') {
         this.toggleAnimation();
       } else if (e.key === 'Escape') {
-        this.setOverviewCamera();
+        this.resetToOverview();
       }
     });
 
@@ -914,6 +914,22 @@ class Killer7Scene {
     this.animateToPosition(cameraPosition, targetPosition, 2000);
 
     console.log(`Focusing on diamond ${diamondIndex}`);
+  }
+
+  private resetToOverview(): void {
+    // Stop any currently playing music
+    this.stopCurrentTrack();
+
+    // Clear all UI selections
+    this.clearUISelections();
+
+    // Set overview camera
+    this.setOverviewCamera();
+  }
+
+  private clearUISelections(): void {
+    // Remove active class from all track names
+    document.querySelectorAll('.track-name').forEach(el => el.classList.remove('active'));
   }
 
   private setOverviewCamera(): void {
