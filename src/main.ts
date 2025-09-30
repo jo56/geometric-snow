@@ -78,10 +78,7 @@ class Killer7Scene {
 
   private updateLoadingProgress(progress: number, text: string): void {
     this.loadingProgress = progress;
-    const loadingBar = document.getElementById('loading-bar');
-    const loadingText = document.getElementById('loading-text');
-    if (loadingBar) loadingBar.style.width = `${progress}%`;
-    if (loadingText) loadingText.textContent = text;
+    // Loading spinner doesn't need progress updates
   }
 
   private hideLoadingScreen(): void {
