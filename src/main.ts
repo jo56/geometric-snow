@@ -41,7 +41,7 @@ class Killer7Scene {
     this.scene.background = new THREE.Color(0xf8f8f8); // Very light gray background
 
     // Camera - updated for much larger terrain with better culling
-    this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
     // Start with a different position for the animation to work
     this.camera.position.set(20, 20, 20);
 
@@ -62,7 +62,7 @@ class Killer7Scene {
 
     // Allow much more zooming for the larger terrain
     this.controls.minDistance = 2;
-    this.controls.maxDistance = 800; // Much larger to see full terrain and mountains
+    this.controls.maxDistance = 1200; // Much larger to see full expanded terrain and mountains
 
     // Allow full rotation
     this.controls.minPolarAngle = 0;
@@ -129,9 +129,9 @@ class Killer7Scene {
   }
 
   private createTerrain(material: THREE.ShaderMaterial): void {
-    // Create massive mountain valley terrain
-    const terrainSize = 800; // Massive terrain to reach mountain ring
-    const segments = 120; // High detail for varied terrain
+    // Create massive mountain valley terrain that reaches all the way to mountains
+    const terrainSize = 1600; // Much larger to reach mountain rings at ~750 radius
+    const segments = 160; // Higher detail for the expanded terrain
     const terrainGeometry = new THREE.PlaneGeometry(terrainSize, terrainSize, segments, segments);
 
     // Add mountainous valley terrain with irregular features throughout
@@ -143,9 +143,9 @@ class Killer7Scene {
       // Distance from center for valley effect
       const distanceFromCenter = Math.sqrt(x * x + z * z);
 
-      // Create valley bowl effect - higher at edges, lower in center
-      const valleyDepth = Math.min(distanceFromCenter / 350, 1); // Gradual rise to mountain ring
-      const valleyHeight = valleyDepth * valleyDepth * 8; // Quadratic rise to edges
+      // Create valley bowl effect that reaches mountain bases - higher at edges, lower in center
+      const valleyDepth = Math.min(distanceFromCenter / 500, 1); // Gradual rise to reach mountain ring at ~500-750
+      const valleyHeight = valleyDepth * valleyDepth * 15; // Steeper rise to connect with mountain bases
 
       // Multiple layers of terrain generation across entire valley
       let height = valleyHeight;
@@ -165,20 +165,25 @@ class Killer7Scene {
       height += Math.cos(x * 0.12) * Math.sin(z * 0.11) * 1.5;
       height += (Math.random() - 0.5) * 2;
 
-      // Create interesting terrain features in different zones
-      if (distanceFromCenter < 150) {
+      // Create interesting terrain features in different zones across expanded valley
+      if (distanceFromCenter < 200) {
         // Central valley - gentle rolling terrain
         height += Math.sin(x * 0.04) * Math.cos(z * 0.04) * 6;
         height += Math.sin(x * 0.06) * Math.sin(z * 0.055) * 4;
-      } else if (distanceFromCenter < 280) {
+      } else if (distanceFromCenter < 400) {
         // Mid valley - more dramatic features
-        height += Math.sin(x * 0.015) * Math.cos(z * 0.018) * 10;
-        height += Math.cos(x * 0.025) * Math.sin(z * 0.02) * 8;
+        height += Math.sin(x * 0.015) * Math.cos(z * 0.018) * 12;
+        height += Math.cos(x * 0.025) * Math.sin(z * 0.02) * 10;
+      } else if (distanceFromCenter < 600) {
+        // Outer valley - transitioning to mountain foothills
+        const transitionEffect = (distanceFromCenter - 400) / 200;
+        height += Math.sin(x * 0.008) * Math.cos(z * 0.008) * 18 * transitionEffect;
+        height += Math.sin(x * 0.005) * Math.sin(z * 0.006) * 25 * transitionEffect;
       } else {
-        // Approaching mountain ring - steep rises and dramatic features
-        const edgeEffect = (distanceFromCenter - 280) / 70;
-        height += Math.sin(x * 0.008) * Math.cos(z * 0.008) * 15 * edgeEffect;
-        height += Math.sin(x * 0.005) * Math.sin(z * 0.006) * 20 * edgeEffect;
+        // Mountain foothills - dramatic rises that connect to mountain bases
+        const foothillEffect = Math.min((distanceFromCenter - 600) / 150, 1);
+        height += Math.sin(x * 0.003) * Math.cos(z * 0.003) * 30 * foothillEffect;
+        height += Math.sin(x * 0.002) * Math.sin(z * 0.0025) * 40 * foothillEffect;
       }
 
       positions[i + 1] = height;
@@ -195,7 +200,7 @@ class Killer7Scene {
     this.createHorizonMountains(material);
   }
 
-  private createComplexMountain(material: THREE.ShaderMaterial, totalHeight: number, baseRadius: number): THREE.Mesh {
+  private createComplexMountain(material: THREE.Material, totalHeight: number, baseRadius: number): THREE.Mesh {
     const mountainType = Math.random();
     let mountainGeometry;
 
@@ -282,6 +287,7 @@ class Killer7Scene {
 
   private createHorizonMountains(material: THREE.ShaderMaterial): void {
     // Dense mountain system to create a complete mountain wall - positioned far from open field
+    const mountainMaterial = this.createMountainMaterial();
 
     // Inner mountain ring - moved further from center to avoid floating near open field
     const innerCount = 24;
@@ -294,7 +300,7 @@ class Killer7Scene {
       const mountainHeight = 180 + Math.random() * 120;
 
       // Create interesting mountain shapes that never go below ground
-      const mountain = this.createComplexMountain(material, mountainHeight, 50 + Math.random() * 60);
+      const mountain = this.createComplexMountain(mountainMaterial, mountainHeight, 50 + Math.random() * 60);
 
       // Position mountain so its absolute bottom is at ground level (y=0)
       const groundOffset = mountainHeight / 2; // This puts the center at height/2, bottom at 0
@@ -330,7 +336,7 @@ class Killer7Scene {
       const mountainHeight = 220 + Math.random() * 150;
 
       // Create interesting mountain shapes that never go below ground
-      const mountain = this.createComplexMountain(material, mountainHeight, 70 + Math.random() * 80);
+      const mountain = this.createComplexMountain(mountainMaterial, mountainHeight, 70 + Math.random() * 80);
 
       // Position mountain so its absolute bottom is at ground level (y=0)
       const groundOffset = mountainHeight / 2; // This puts the center at height/2, bottom at 0
@@ -370,7 +376,7 @@ class Killer7Scene {
           mountainHeight,
           6
         ),
-        material
+        mountainMaterial
       );
 
       mountain.position.set(
@@ -399,7 +405,7 @@ class Killer7Scene {
           mountainHeight,
           6
         ),
-        material
+        mountainMaterial
       );
 
       mountain.position.set(
@@ -417,8 +423,8 @@ class Killer7Scene {
   }
 
   private createTerrainElements(material: THREE.ShaderMaterial): void {
-    // Add scattered platform pieces at different levels - spread across larger area
-    for (let i = 0; i < 40; i++) { // Increased from 15 to 40
+    // Add scattered platform pieces at different levels - spread across full valley
+    for (let i = 0; i < 120; i++) { // Much more platforms for full valley coverage
       const platformSize = 3 + Math.random() * 6;
       const platformHeight = 0.3 + Math.random() * 1.2;
       const platform = new THREE.Mesh(
@@ -427,9 +433,9 @@ class Killer7Scene {
       );
 
       platform.position.set(
-        (Math.random() - 0.5) * 350, // Increased spread for mountainous terrain
+        (Math.random() - 0.5) * 1400, // Spread across full expanded terrain
         platformHeight / 2 + Math.random() * 3,
-        (Math.random() - 0.5) * 350  // Increased spread for mountainous terrain
+        (Math.random() - 0.5) * 1400  // Spread across full expanded terrain
       );
       platform.rotation.y = Math.random() * Math.PI;
       platform.castShadow = true;
@@ -438,8 +444,8 @@ class Killer7Scene {
       this.geometryObjects.push(platform);
     }
 
-    // Create elevated areas with steps - more scattered across larger space
-    for (let i = 0; i < 20; i++) { // Increased from 8 to 20
+    // Create elevated areas with steps - scattered across full valley
+    for (let i = 0; i < 60; i++) { // Many more step areas for full coverage
       const stepCount = 3 + Math.floor(Math.random() * 5);
       const stepWidth = 2 + Math.random() * 3;
 
@@ -449,8 +455,8 @@ class Killer7Scene {
           material
         );
 
-        const baseX = (Math.random() - 0.5) * 300; // Increased for larger terrain
-        const baseZ = (Math.random() - 0.5) * 300; // Increased for larger terrain
+        const baseX = (Math.random() - 0.5) * 1200; // Spread across expanded terrain
+        const baseZ = (Math.random() - 0.5) * 1200; // Spread across expanded terrain
 
         step.position.set(
           baseX,
@@ -464,8 +470,8 @@ class Killer7Scene {
       }
     }
 
-    // Add some larger landmark structures across the expanded terrain
-    for (let i = 0; i < 12; i++) {
+    // Add many larger landmark structures across the full expanded terrain
+    for (let i = 0; i < 40; i++) { // Much more landmarks for full valley
       const landmarkTypes = [
         new THREE.BoxGeometry(8, 6, 8),          // Large blocks
         new THREE.CylinderGeometry(3, 3, 8, 8),  // Towers
@@ -477,9 +483,9 @@ class Killer7Scene {
       const landmark = new THREE.Mesh(geometry, material);
 
       landmark.position.set(
-        (Math.random() - 0.5) * 320, // Spread across mountainous terrain
+        (Math.random() - 0.5) * 1300, // Spread across full expanded terrain
         3 + Math.random() * 4,
-        (Math.random() - 0.5) * 320
+        (Math.random() - 0.5) * 1300
       );
 
       landmark.rotation.y = Math.random() * Math.PI;
@@ -494,14 +500,14 @@ class Killer7Scene {
   }
 
   private createVerticalStacks(material: THREE.ShaderMaterial): void {
-    // Create irregular piles of rectangular blocks
-    for (let pile = 0; pile < 30; pile++) {
+    // Create irregular piles of rectangular blocks across full valley
+    for (let pile = 0; pile < 80; pile++) { // More piles for full coverage
       const pileSize = 8 + Math.floor(Math.random() * 15); // 8-22 blocks per pile
       const baseSize = 2 + Math.random() * 4;
 
-      // Pile center position
-      const pileX = (Math.random() - 0.5) * 300;
-      const pileZ = (Math.random() - 0.5) * 300;
+      // Pile center position across expanded terrain
+      const pileX = (Math.random() - 0.5) * 1200;
+      const pileZ = (Math.random() - 0.5) * 1200;
 
       // Create irregular pile with blocks scattered around center
       for (let block = 0; block < pileSize; block++) {
@@ -543,13 +549,13 @@ class Killer7Scene {
       }
     }
 
-    // Create some extremely tall spire-like stacks
-    for (let spire = 0; spire < 8; spire++) {
+    // Create some extremely tall spire-like stacks across expanded valley
+    for (let spire = 0; spire < 25; spire++) { // More spires for full coverage
       const spireHeight = 15 + Math.floor(Math.random() * 20); // Very tall
       const baseSize = 1.5 + Math.random() * 2;
 
-      const spireX = (Math.random() - 0.5) * 250;
-      const spireZ = (Math.random() - 0.5) * 250;
+      const spireX = (Math.random() - 0.5) * 1100;
+      const spireZ = (Math.random() - 0.5) * 1100;
 
       let currentHeight = 0;
 
@@ -582,13 +588,13 @@ class Killer7Scene {
       }
     }
 
-    // Create some stepped pyramid-like structures
-    for (let pyramid = 0; pyramid < 6; pyramid++) {
+    // Create some stepped pyramid-like structures across full valley
+    for (let pyramid = 0; pyramid < 20; pyramid++) { // More pyramids for full coverage
       const levels = 4 + Math.floor(Math.random() * 6);
       const baseSize = 6 + Math.random() * 4;
 
-      const pyramidX = (Math.random() - 0.5) * 280;
-      const pyramidZ = (Math.random() - 0.5) * 280;
+      const pyramidX = (Math.random() - 0.5) * 1000;
+      const pyramidZ = (Math.random() - 0.5) * 1000;
 
       for (let level = 0; level < levels; level++) {
         const levelSize = baseSize * (1 - level / levels * 0.7);
@@ -652,11 +658,11 @@ class Killer7Scene {
     light.shadow.mapSize.width = 2048;
     light.shadow.mapSize.height = 2048;
     light.shadow.camera.near = 1;
-    light.shadow.camera.far = 800; // Much larger for full terrain coverage
-    light.shadow.camera.left = -400; // Massive shadow coverage
-    light.shadow.camera.right = 400;
-    light.shadow.camera.top = 400;
-    light.shadow.camera.bottom = -400;
+    light.shadow.camera.far = 1600; // Much larger for full expanded terrain coverage
+    light.shadow.camera.left = -800; // Massive shadow coverage for expanded terrain
+    light.shadow.camera.right = 800;
+    light.shadow.camera.top = 800;
+    light.shadow.camera.bottom = -800;
     this.scene.add(light);
 
     // Add subtle ambient light to ensure visibility from all angles
@@ -968,6 +974,40 @@ class Killer7Scene {
           // Binary step with better contrast against light gray background
           float shade = step(0.5, NdotL);
           vec3 color = mix(vec3(0.1), vec3(0.9), shade);  // Darker contrast for visibility
+
+          gl_FragColor = vec4(color, 1.0);
+        }
+      `
+    });
+  }
+
+  private createMountainMaterial(): THREE.ShaderMaterial {
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        lightDirection: { value: new THREE.Vector3(5, 10, 5).normalize() }
+      },
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 lightDirection;
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+
+        void main() {
+          vec3 normal = normalize(vNormal);
+          float NdotL = max(dot(normal, lightDirection), 0.0);
+
+          // Binary step with grayer colors for mountains
+          float shade = step(0.5, NdotL);
+          vec3 color = mix(vec3(0.4), vec3(0.9), shade);  // Gray instead of very dark for mountains
 
           gl_FragColor = vec4(color, 1.0);
         }
