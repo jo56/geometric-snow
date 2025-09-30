@@ -357,23 +357,6 @@ class Killer7Scene {
       this.animatedObjects.push(pyramid);
     }
 
-    // Ring 4: Center formation of rings (radius 4)
-    const torusCount = 4;
-    const torusRadius = 4;
-    for (let i = 0; i < torusCount; i++) {
-      const angle = (i / torusCount) * Math.PI * 2;
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(1.2, 0.2, 6, 12), material);
-      ring.position.set(
-        Math.cos(angle) * torusRadius,
-        6 + Math.cos(i * 1.5) * 0.5, // Minimal height variation
-        Math.sin(angle) * torusRadius
-      );
-      ring.castShadow = true;
-      ring.receiveShadow = true;
-      this.scene.add(ring);
-      this.geometryObjects.push(ring);
-      this.animatedObjects.push(ring);
-    }
 
     // Central focal point - single large object
     const centerPiece = new THREE.Mesh(new THREE.OctahedronGeometry(1.5), material);
