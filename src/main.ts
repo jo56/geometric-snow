@@ -161,7 +161,7 @@ class Killer7Scene {
 
     // Animation toggle controls and camera switching
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' || e.key === 's' || e.key === 'S') {
+      if (e.key === 'Escape' || e.key === 'q' || e.key === 'q') {
         this.resetToOverview();
       } else if (e.key === 'p' || e.key === 'P') {
         // Toggle play/pause for current track
