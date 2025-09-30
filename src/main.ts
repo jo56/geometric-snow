@@ -977,7 +977,7 @@ class Killer7Scene {
     const starMaterial = new THREE.PointsMaterial({
       color: 0xffffff,
       size: 4.0,
-      sizeAttenuation: false, // Disable size attenuation so depth doesn't affect rendering
+      sizeAttenuation: false,
       transparent: false,
       depthTest: true,
       depthWrite: false
@@ -1713,15 +1713,13 @@ class Killer7Scene {
   }
 
   private createHalfDiamond(size: number, material: THREE.Material): THREE.Mesh {
-    // Create bottom half of diamond manually
     const geometry = new THREE.BufferGeometry();
 
-    // Define vertices for bottom half of octahedron
     const vertices = new Float32Array([
-      // Bottom point
+      // Bottom point (vertex 0)
       0, -size, 0,
 
-      // Middle ring (8 points around the equator)
+      // Middle ring (8 points around the equator) - vertices 1-8
       size, 0, 0,
       size * 0.707, 0, size * 0.707,
       0, 0, size,
@@ -1732,9 +1730,8 @@ class Killer7Scene {
       size * 0.707, 0, -size * 0.707
     ]);
 
-    // Define faces (triangles connecting bottom point to edge ring)
     const indices = [
-      // Bottom triangles - reverse winding for proper normals
+      // Bottom triangles (8 triangular faces from bottom point to ring)
       0, 2, 1,
       0, 3, 2,
       0, 4, 3,
@@ -1742,27 +1739,33 @@ class Killer7Scene {
       0, 6, 5,
       0, 7, 6,
       0, 8, 7,
-      0, 1, 8
+      0, 1, 8,
+
+      // Top face (octagon split into 6 triangles)
+      1, 2, 3,
+      1, 3, 4,
+      1, 4, 5,
+      1, 5, 6,
+      1, 6, 7,
+      1, 7, 8
     ];
 
     geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
     geometry.setIndex(indices);
     geometry.computeVertexNormals();
 
-    // Create solid black material with white wireframe
     const blackMaterial = new THREE.MeshBasicMaterial({
       color: 0x000000,
-      polygonOffset: true,
-      polygonOffsetFactor: 1,
-      polygonOffsetUnits: 1
+      side: THREE.DoubleSide
     });
+
     const mesh = new THREE.Mesh(geometry, blackMaterial);
 
-    // Add white wireframe for edges (using WireframeGeometry for all edges)
-    const wireframe = new THREE.WireframeGeometry(geometry);
-    const wireframeMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 1 });
-    const wireframeLines = new THREE.LineSegments(wireframe, wireframeMaterial);
-    mesh.add(wireframeLines);
+    // Use EdgesGeometry to only show outer edges, not internal triangulation
+    const edges = new THREE.EdgesGeometry(geometry, 1);
+    const edgeMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+    const edgeLines = new THREE.LineSegments(edges, edgeMaterial);
+    mesh.add(edgeLines);
 
     return mesh;
   }
