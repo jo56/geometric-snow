@@ -21,6 +21,8 @@ class Killer7Scene {
   private spinningDiamonds = new Set<number>();
   private currentAudio: HTMLAudioElement | null = null;
   private currentTrack: number = -1;
+  private particles!: THREE.Points;
+  private particleVelocities!: Float32Array;
 
   constructor() {
     this.init();
@@ -797,6 +799,53 @@ class Killer7Scene {
 
     // Add floating animated objects
     this.createFloatingObjects();
+
+    // Add soft black particles
+    this.createParticleSystem();
+  }
+
+  private createParticleSystem(): void {
+    // Create soft, fuzzy black particles
+    const particleCount = 1000;
+    const particleGeometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    const velocities = new Float32Array(particleCount * 3);
+
+    // Initialize particle positions and velocities
+    for (let i = 0; i < particleCount; i++) {
+      const i3 = i * 3;
+
+      // Spread particles throughout the expanded valley
+      positions[i3] = (Math.random() - 0.5) * 1600;     // X
+      positions[i3 + 1] = Math.random() * 200;          // Y (height)
+      positions[i3 + 2] = (Math.random() - 0.5) * 1600; // Z
+
+      // Faster downward drift with some randomness
+      velocities[i3] = (Math.random() - 0.5) * 0.4;     // X velocity
+      velocities[i3 + 1] = -0.5 - Math.random() * 1.0;  // Y velocity (falling much faster)
+      velocities[i3 + 2] = (Math.random() - 0.5) * 0.4; // Z velocity
+    }
+
+    particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    particleGeometry.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
+
+    // Create soft, fuzzy gray particle material
+    const particleMaterial = new THREE.PointsMaterial({
+      color: 0x404040,        // Medium gray for soft appearance
+      size: 5.0,              // Large particles for visibility
+      transparent: true,
+      opacity: 0.7,           // Semi-transparent for softness
+      blending: THREE.NormalBlending, // Normal blending
+      sizeAttenuation: true,  // Size changes with distance
+      vertexColors: false
+    });
+
+    const particles = new THREE.Points(particleGeometry, particleMaterial);
+    this.scene.add(particles);
+
+    // Store references for animation
+    this.particles = particles;
+    this.particleVelocities = velocities;
   }
 
   private createBackground(): void {
@@ -1667,6 +1716,34 @@ class Killer7Scene {
           this.diamonds[diamondIndex].rotation.y = time * 2.0; // Spin around Y axis
         }
       });
+
+      // Animate particles
+      if (this.particles && this.particleVelocities) {
+        const positions = this.particles.geometry.attributes.position.array as Float32Array;
+        const particleCount = positions.length / 3;
+
+        for (let i = 0; i < particleCount; i++) {
+          const i3 = i * 3;
+
+          // Update positions based on velocities
+          positions[i3] += this.particleVelocities[i3] * 1.0;         // X
+          positions[i3 + 1] += this.particleVelocities[i3 + 1] * 1.0; // Y
+          positions[i3 + 2] += this.particleVelocities[i3 + 2] * 1.0; // Z
+
+          // Reset particles that fall below ground or drift too far
+          if (positions[i3 + 1] < -10 ||
+              Math.abs(positions[i3]) > 900 ||
+              Math.abs(positions[i3 + 2]) > 900) {
+
+            // Reset to top of scene
+            positions[i3] = (Math.random() - 0.5) * 1600;
+            positions[i3 + 1] = 180 + Math.random() * 20;
+            positions[i3 + 2] = (Math.random() - 0.5) * 1600;
+          }
+        }
+
+        this.particles.geometry.attributes.position.needsUpdate = true;
+      }
     }
 
     this.controls.update();
