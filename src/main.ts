@@ -642,6 +642,109 @@ class Killer7Scene {
     this.scene.add(centerPiece);
     this.geometryObjects.push(centerPiece);
     this.animatedObjects.push(centerPiece);
+
+    // Additional floating diamonds with their own debris fields
+    this.createAdditionalDiamonds(material, baseHeight);
+  }
+
+  private createAdditionalDiamonds(material: THREE.ShaderMaterial, baseHeight: number): void {
+    // Create 6 additional diamonds scattered around the valley
+    const diamondPositions = [
+      { x: 80, z: 40, height: baseHeight + 15 },
+      { x: -60, z: 70, height: baseHeight + 20 },
+      { x: 45, z: -85, height: baseHeight + 12 },
+      { x: -90, z: -30, height: baseHeight + 25 },
+      { x: 20, z: 100, height: baseHeight + 18 },
+      { x: -40, z: -70, height: baseHeight + 22 }
+    ];
+
+    diamondPositions.forEach((pos, index) => {
+      // Create smaller diamond (varied sizes)
+      const diamondSize = 2.5 + Math.random() * 1.5; // 2.5-4 units
+      const diamond = new THREE.Mesh(new THREE.OctahedronGeometry(diamondSize), material);
+      diamond.position.set(pos.x, pos.height, pos.z);
+      diamond.castShadow = true;
+      diamond.receiveShadow = true;
+      this.scene.add(diamond);
+      this.geometryObjects.push(diamond);
+      this.animatedObjects.push(diamond);
+
+      // Create debris field around each diamond
+      const debrisCount = 8 + Math.floor(Math.random() * 7); // 8-14 debris pieces per diamond
+
+      for (let i = 0; i < debrisCount; i++) {
+        const debrisTypes = [
+          new THREE.BoxGeometry(0.3 + Math.random() * 0.6, 0.3 + Math.random() * 0.6, 0.3 + Math.random() * 0.6),
+          new THREE.TetrahedronGeometry(0.4 + Math.random() * 0.3),
+          new THREE.ConeGeometry(0.3 + Math.random() * 0.2, 0.6 + Math.random() * 0.4, 5),
+          new THREE.OctahedronGeometry(0.3 + Math.random() * 0.2),
+          new THREE.DodecahedronGeometry(0.3 + Math.random() * 0.2),
+          new THREE.IcosahedronGeometry(0.3 + Math.random() * 0.2)
+        ];
+
+        const geometry = debrisTypes[Math.floor(Math.random() * debrisTypes.length)];
+        const debris = new THREE.Mesh(geometry, material);
+
+        // Position debris around each diamond
+        const angle = Math.random() * Math.PI * 2;
+        const radius = 4 + Math.random() * 12; // Closer orbit around smaller diamonds
+        const height = pos.height + (Math.random() - 0.5) * 8;
+
+        debris.position.set(
+          pos.x + Math.cos(angle) * radius,
+          height,
+          pos.z + Math.sin(angle) * radius
+        );
+
+        debris.rotation.set(
+          Math.random() * Math.PI,
+          Math.random() * Math.PI,
+          Math.random() * Math.PI
+        );
+
+        debris.castShadow = true;
+        debris.receiveShadow = true;
+        this.scene.add(debris);
+        this.geometryObjects.push(debris);
+        this.animatedObjects.push(debris);
+      }
+
+      // Add some larger orbital objects around each diamond
+      const orbitalCount = 3 + Math.floor(Math.random() * 3); // 3-5 orbital objects
+      for (let i = 0; i < orbitalCount; i++) {
+        const orbitalTypes = [
+          new THREE.SphereGeometry(0.6 + Math.random() * 0.4, 8, 6),
+          new THREE.CylinderGeometry(0.3, 0.3, 1.2 + Math.random() * 0.8, 6),
+          new THREE.TorusGeometry(0.8, 0.2, 6, 12)
+        ];
+
+        const geometry = orbitalTypes[Math.floor(Math.random() * orbitalTypes.length)];
+        const orbital = new THREE.Mesh(geometry, material);
+
+        // Larger orbital radius for bigger objects
+        const angle = (i / orbitalCount) * Math.PI * 2 + Math.random() * 0.5;
+        const radius = 8 + Math.random() * 8;
+        const height = pos.height + (Math.random() - 0.5) * 6;
+
+        orbital.position.set(
+          pos.x + Math.cos(angle) * radius,
+          height,
+          pos.z + Math.sin(angle) * radius
+        );
+
+        orbital.rotation.set(
+          Math.random() * Math.PI,
+          Math.random() * Math.PI,
+          Math.random() * Math.PI
+        );
+
+        orbital.castShadow = true;
+        orbital.receiveShadow = true;
+        this.scene.add(orbital);
+        this.geometryObjects.push(orbital);
+        this.animatedObjects.push(orbital);
+      }
+    });
   }
 
   private createBinaryToonMaterial(): THREE.ShaderMaterial {
