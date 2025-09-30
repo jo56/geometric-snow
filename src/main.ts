@@ -28,8 +28,8 @@ class Killer7Scene {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0xffffff);
 
-    // Camera
-    this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+    // Camera - updated for much larger terrain
+    this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 500);
     this.camera.position.set(8, 6, 8);
 
     // Renderer
@@ -38,9 +38,20 @@ class Killer7Scene {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.BasicShadowMap;
 
-    // Controls
+    // Controls - updated for much larger terrain
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.target.set(0, 1, 0);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.05;
+
+    // Allow much more zooming for the larger terrain
+    this.controls.minDistance = 2;
+    this.controls.maxDistance = 300; // Increased from default to see full terrain
+
+    // Allow full rotation
+    this.controls.minPolarAngle = 0;
+    this.controls.maxPolarAngle = Math.PI;
+
     this.controls.update();
 
     // Add to DOM
@@ -218,16 +229,16 @@ class Killer7Scene {
 
     // Lighting - harsh directional for stark shadows
     const light = new THREE.DirectionalLight(0xffffff, 2.0);
-    light.position.set(5, 10, 5);
+    light.position.set(50, 100, 50); // Moved higher and further for larger terrain
     light.castShadow = true;
     light.shadow.mapSize.width = 2048;
     light.shadow.mapSize.height = 2048;
     light.shadow.camera.near = 0.5;
-    light.shadow.camera.far = 50;
-    light.shadow.camera.left = -10;
-    light.shadow.camera.right = 10;
-    light.shadow.camera.top = 10;
-    light.shadow.camera.bottom = -10;
+    light.shadow.camera.far = 200; // Increased for larger terrain
+    light.shadow.camera.left = -100; // Expanded shadow coverage
+    light.shadow.camera.right = 100;
+    light.shadow.camera.top = 100;
+    light.shadow.camera.bottom = -100;
     this.scene.add(light);
 
     // NO ambient light for pure blacks
