@@ -303,13 +303,16 @@ class Killer7Scene {
   private createFloatingObjects(): void {
     const material = this.createBinaryToonMaterial();
 
-    // Floating spinning cubes - spread across larger area
-    for (let i = 0; i < 6; i++) {
+    // Ring 1: Outer ring of cubes (radius 18)
+    const cubeCount = 8;
+    const cubeRadius = 18;
+    for (let i = 0; i < cubeCount; i++) {
+      const angle = (i / cubeCount) * Math.PI * 2;
       const cube = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), material);
       cube.position.set(
-        (Math.random() - 0.5) * 40, // -20 to +20
-        4 + Math.random() * 6,      // 4 to 10 height
-        (Math.random() - 0.5) * 40  // -20 to +20
+        Math.cos(angle) * cubeRadius,
+        5 + Math.sin(i * 0.5) * 2, // Varied heights in wave pattern
+        Math.sin(angle) * cubeRadius
       );
       cube.castShadow = true;
       cube.receiveShadow = true;
@@ -318,13 +321,16 @@ class Killer7Scene {
       this.animatedObjects.push(cube);
     }
 
-    // Floating spheres - spread out more
-    for (let i = 0; i < 5; i++) {
+    // Ring 2: Middle ring of spheres (radius 12)
+    const sphereCount = 6;
+    const sphereRadius = 12;
+    for (let i = 0; i < sphereCount; i++) {
+      const angle = (i / sphereCount) * Math.PI * 2;
       const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 6), material);
       sphere.position.set(
-        (Math.random() - 0.5) * 35, // -17.5 to +17.5
-        3 + Math.random() * 5,      // 3 to 8 height
-        (Math.random() - 0.5) * 35  // -17.5 to +17.5
+        Math.cos(angle) * sphereRadius,
+        4 + Math.cos(i * 0.8) * 1.5, // Different wave pattern
+        Math.sin(angle) * sphereRadius
       );
       sphere.castShadow = true;
       sphere.receiveShadow = true;
@@ -333,13 +339,16 @@ class Killer7Scene {
       this.animatedObjects.push(sphere);
     }
 
-    // Floating pyramids - more spread out
-    for (let i = 0; i < 4; i++) {
+    // Ring 3: Inner ring of pyramids (radius 8)
+    const pyramidCount = 5;
+    const pyramidRadius = 8;
+    for (let i = 0; i < pyramidCount; i++) {
+      const angle = (i / pyramidCount) * Math.PI * 2;
       const pyramid = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.2, 4), material);
       pyramid.position.set(
-        (Math.random() - 0.5) * 30, // -15 to +15
-        2 + Math.random() * 4,      // 2 to 6 height
-        (Math.random() - 0.5) * 30  // -15 to +15
+        Math.cos(angle) * pyramidRadius,
+        3 + Math.sin(i * 1.2) * 1, // Subtle height variation
+        Math.sin(angle) * pyramidRadius
       );
       pyramid.castShadow = true;
       pyramid.receiveShadow = true;
@@ -348,13 +357,16 @@ class Killer7Scene {
       this.animatedObjects.push(pyramid);
     }
 
-    // Multiple floating rings at different positions
-    for (let i = 0; i < 3; i++) {
+    // Ring 4: Center formation of rings (radius 4)
+    const torusCount = 4;
+    const torusRadius = 4;
+    for (let i = 0; i < torusCount; i++) {
+      const angle = (i / torusCount) * Math.PI * 2;
       const ring = new THREE.Mesh(new THREE.TorusGeometry(1.2, 0.2, 6, 12), material);
       ring.position.set(
-        (Math.random() - 0.5) * 25, // -12.5 to +12.5
-        5 + Math.random() * 4,      // 5 to 9 height
-        (Math.random() - 0.5) * 25  // -12.5 to +12.5
+        Math.cos(angle) * torusRadius,
+        6 + Math.cos(i * 1.5) * 0.5, // Minimal height variation
+        Math.sin(angle) * torusRadius
       );
       ring.castShadow = true;
       ring.receiveShadow = true;
@@ -362,6 +374,15 @@ class Killer7Scene {
       this.geometryObjects.push(ring);
       this.animatedObjects.push(ring);
     }
+
+    // Central focal point - single large object
+    const centerPiece = new THREE.Mesh(new THREE.OctahedronGeometry(1.5), material);
+    centerPiece.position.set(0, 7, 0);
+    centerPiece.castShadow = true;
+    centerPiece.receiveShadow = true;
+    this.scene.add(centerPiece);
+    this.geometryObjects.push(centerPiece);
+    this.animatedObjects.push(centerPiece);
   }
 
   private createBinaryToonMaterial(): THREE.ShaderMaterial {
