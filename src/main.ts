@@ -23,18 +23,53 @@ class Killer7Scene {
   private currentTrack: number = -1;
   private particles!: THREE.Points;
   private particleVelocities!: Float32Array;
+  private loadingProgress = 0;
+  private isLoaded = false;
 
   constructor() {
+    this.initWithLoading();
+  }
+
+  private async initWithLoading(): Promise<void> {
+    this.updateLoadingProgress(10, 'Initializing renderer...');
     this.init();
-    this.createScene();
+
+    this.updateLoadingProgress(30, 'Creating scene geometry...');
+    await this.createSceneAsync();
+
+    this.updateLoadingProgress(70, 'Setting up post-processing...');
     this.setupPostProcessing();
+
+    this.updateLoadingProgress(90, 'Finalizing...');
     this.animate();
 
-    // Start with fade-in and overview animation after delay for mountain generation
+    // Complete loading
+    this.updateLoadingProgress(100, 'Complete!');
     setTimeout(() => {
+      this.hideLoadingScreen();
       this.fadeInScene();
       this.setOverviewCamera();
-    }, 1200);
+    }, 500);
+  }
+
+  private updateLoadingProgress(progress: number, text: string): void {
+    this.loadingProgress = progress;
+    const loadingBar = document.getElementById('loading-bar');
+    const loadingText = document.getElementById('loading-text');
+    if (loadingBar) loadingBar.style.width = `${progress}%`;
+    if (loadingText) loadingText.textContent = text;
+  }
+
+  private hideLoadingScreen(): void {
+    const loadingScreen = document.getElementById('loading-screen');
+    if (loadingScreen) {
+      loadingScreen.style.opacity = '0';
+      loadingScreen.style.transition = 'opacity 0.5s ease';
+      setTimeout(() => {
+        loadingScreen.style.display = 'none';
+        this.isLoaded = true;
+      }, 500);
+    }
   }
 
   private init(): void {
@@ -47,14 +82,18 @@ class Killer7Scene {
     // Start with a different position for the animation to work
     this.camera.position.set(20, 20, 20);
 
-    // Renderer
+    // Optimized Renderer
     this.renderer = new THREE.WebGLRenderer({
       antialias: false,
-      logarithmicDepthBuffer: true  // Better depth precision for large scenes
+      logarithmicDepthBuffer: true,
+      powerPreference: "high-performance",
+      stencil: false
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit pixel ratio for performance
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.BasicShadowMap;
+    this.renderer.shadowMap.type = THREE.BasicShadowMap; // Fastest shadow type
+    this.renderer.shadowMap.autoUpdate = false; // Manual shadow updates for better performance
 
     // Controls - updated for much larger terrain
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -747,15 +786,20 @@ class Killer7Scene {
   }
 
 
-  private createScene(): void {
+  private async createSceneAsync(): Promise<void> {
     // Create binary toon material
     const material = this.createBinaryToonMaterial();
 
+    // Create scene in chunks with yield points for loading progress
+    await this.yieldToMain();
+
     // Create massive mountainous terrain
     this.createTerrain(material);
+    await this.yieldToMain();
 
     // Create terrain elements (platforms, steps, landmarks)
     this.createTerrainElements(material);
+    await this.yieldToMain();
 
     // Basic scene objects
     for (let i = 0; i < 3; i++) {
@@ -776,37 +820,48 @@ class Killer7Scene {
       this.geometryObjects.push(column);
     }
 
-    // Lighting - harsh directional for stark shadows
+    // Optimized Lighting
     const light = new THREE.DirectionalLight(0xffffff, 2.0);
-    light.position.set(200, 200, 200); // Much higher and further for massive terrain
+    light.position.set(200, 200, 200);
     light.castShadow = true;
-    light.shadow.mapSize.width = 2048;
-    light.shadow.mapSize.height = 2048;
+    light.shadow.mapSize.width = 1024; // Reduced for better performance
+    light.shadow.mapSize.height = 1024;
     light.shadow.camera.near = 1;
-    light.shadow.camera.far = 1600; // Much larger for full expanded terrain coverage
-    light.shadow.camera.left = -800; // Massive shadow coverage for expanded terrain
-    light.shadow.camera.right = 800;
-    light.shadow.camera.top = 800;
-    light.shadow.camera.bottom = -800;
+    light.shadow.camera.far = 1200; // Reduced range
+    light.shadow.camera.left = -600; // Reduced coverage for performance
+    light.shadow.camera.right = 600;
+    light.shadow.camera.top = 600;
+    light.shadow.camera.bottom = -600;
     this.scene.add(light);
 
     // Add subtle ambient light to ensure visibility from all angles
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
     this.scene.add(ambientLight);
 
+    await this.yieldToMain();
+
     // Add background architecture
     this.createBackground();
+    await this.yieldToMain();
 
     // Add floating animated objects
     this.createFloatingObjects();
+    await this.yieldToMain();
 
-    // Add soft black particles
-    this.createParticleSystem();
+    // Add optimized particle system
+    this.createOptimizedParticleSystem();
+    await this.yieldToMain();
   }
 
-  private createParticleSystem(): void {
-    // Create soft, fuzzy black particles
-    const particleCount = 1000;
+  private yieldToMain(): Promise<void> {
+    return new Promise(resolve => {
+      setTimeout(resolve, 0);
+    });
+  }
+
+  private createOptimizedParticleSystem(): void {
+    // Optimized particle system with fewer particles but better performance
+    const particleCount = 500; // Reduced from 1000 for better performance
     const particleGeometry = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
     const velocities = new Float32Array(particleCount * 3);
@@ -829,15 +884,16 @@ class Killer7Scene {
     particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     particleGeometry.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
 
-    // Create soft, fuzzy light gray particle material
+    // Optimized particle material
     const particleMaterial = new THREE.PointsMaterial({
       color: 0x808080,        // Light gray for soft appearance
-      size: 5.0,              // Large particles for visibility
+      size: 6.0,              // Slightly larger to compensate for fewer particles
       transparent: true,
-      opacity: 0.5,           // More transparent for lighter feel
-      blending: THREE.NormalBlending, // Normal blending
-      sizeAttenuation: true,  // Size changes with distance
-      vertexColors: false
+      opacity: 0.6,           // Slightly more opaque to compensate
+      blending: THREE.NormalBlending,
+      sizeAttenuation: true,
+      vertexColors: false,
+      alphaTest: 0.1          // Performance optimization
     });
 
     const particles = new THREE.Points(particleGeometry, particleMaterial);
@@ -1684,31 +1740,37 @@ class Killer7Scene {
   private animate = (): void => {
     requestAnimationFrame(this.animate);
 
+    if (!this.isLoaded) return; // Don't animate until fully loaded
+
     if (!this.animationPaused) {
       const time = this.clock.getElapsedTime();
 
-      // Animate floating objects
-      this.animatedObjects.forEach((obj, index) => {
+      // Animate floating objects (optimized with early exit)
+      const animatedCount = Math.min(this.animatedObjects.length, 50); // Limit animated objects for performance
+      for (let i = 0; i < animatedCount; i++) {
+        const obj = this.animatedObjects[i];
+        if (!obj) continue;
+
         if (obj.geometry.type === 'BoxGeometry') {
           // Spinning cubes
-          obj.rotation.x = time * 0.5 + index;
-          obj.rotation.y = time * 0.7 + index;
-          obj.position.y += Math.sin(time * 1.5 + index * 2) * 0.01;
+          obj.rotation.x = time * 0.5 + i;
+          obj.rotation.y = time * 0.7 + i;
+          obj.position.y += Math.sin(time * 1.5 + i * 2) * 0.01;
         } else if (obj.geometry.type === 'SphereGeometry') {
           // Floating spheres - slow bob
-          obj.position.y += Math.sin(time * 0.8 + index * 3) * 0.02;
-          obj.rotation.z = time * 0.3 + index;
+          obj.position.y += Math.sin(time * 0.8 + i * 3) * 0.02;
+          obj.rotation.z = time * 0.3 + i;
         } else if (obj.geometry.type === 'ConeGeometry') {
           // Pyramids - rotate and slight movement
-          obj.rotation.y = time * 1.2 + index;
-          obj.position.x += Math.sin(time * 0.6 + index * 4) * 0.01;
+          obj.rotation.y = time * 1.2 + i;
+          obj.position.x += Math.sin(time * 0.6 + i * 4) * 0.01;
         } else if (obj.geometry.type === 'TorusGeometry') {
           // Rings - complex rotation
-          obj.rotation.x = time * 0.4 + index;
-          obj.rotation.y = time * 0.6 + index;
-          obj.rotation.z = time * 0.2 + index;
+          obj.rotation.x = time * 0.4 + i;
+          obj.rotation.y = time * 0.6 + i;
+          obj.rotation.z = time * 0.2 + i;
         }
-      });
+      }
 
       // Animate spinning diamonds
       this.spinningDiamonds.forEach(diamondIndex => {
@@ -1717,8 +1779,8 @@ class Killer7Scene {
         }
       });
 
-      // Animate particles
-      if (this.particles && this.particleVelocities) {
+      // Optimized particle animation (update every other frame for performance)
+      if (this.particles && this.particleVelocities && Math.floor(time * 60) % 2 === 0) {
         const positions = this.particles.geometry.attributes.position.array as Float32Array;
         const particleCount = positions.length / 3;
 
@@ -1726,9 +1788,9 @@ class Killer7Scene {
           const i3 = i * 3;
 
           // Update positions based on velocities
-          positions[i3] += this.particleVelocities[i3] * 1.0;         // X
-          positions[i3 + 1] += this.particleVelocities[i3 + 1] * 1.0; // Y
-          positions[i3 + 2] += this.particleVelocities[i3 + 2] * 1.0; // Z
+          positions[i3] += this.particleVelocities[i3] * 2.0;         // X (doubled to compensate for every-other-frame update)
+          positions[i3 + 1] += this.particleVelocities[i3 + 1] * 2.0; // Y
+          positions[i3 + 2] += this.particleVelocities[i3 + 2] * 2.0; // Z
 
           // Reset particles that fall below ground or drift too far
           if (positions[i3 + 1] < -10 ||
