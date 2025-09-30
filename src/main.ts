@@ -559,6 +559,10 @@ class Killer7Scene {
 
   private createFloatingObjects(): void {
     const material = this.createBinaryToonMaterial();
+    const debrisMaterial = new THREE.MeshBasicMaterial({
+      color: 0x000000,
+      side: THREE.DoubleSide
+    });
 
     // Ring 1: Outer ring of cubes (radius 25, high altitude)
     const cubeCount = 8;
@@ -566,7 +570,7 @@ class Killer7Scene {
     const baseHeight = 35; // Much higher floating height
     for (let i = 0; i < cubeCount; i++) {
       const angle = (i / cubeCount) * Math.PI * 2;
-      const cube = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), material);
+      const cube = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), debrisMaterial);
       cube.position.set(
         Math.cos(angle) * cubeRadius,
         baseHeight + Math.sin(i * 0.5) * 4, // Higher with more variation
@@ -584,7 +588,7 @@ class Killer7Scene {
     const sphereRadius = 18;
     for (let i = 0; i < sphereCount; i++) {
       const angle = (i / sphereCount) * Math.PI * 2;
-      const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.8, 8, 6), material);
+      const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.8, 8, 6), debrisMaterial);
       sphere.position.set(
         Math.cos(angle) * sphereRadius,
         baseHeight - 2 + Math.cos(i * 0.8) * 3, // Slightly lower than cubes
@@ -602,7 +606,7 @@ class Killer7Scene {
     const pyramidRadius = 12;
     for (let i = 0; i < pyramidCount; i++) {
       const angle = (i / pyramidCount) * Math.PI * 2;
-      const pyramid = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.8, 4), material);
+      const pyramid = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.8, 4), debrisMaterial);
       pyramid.position.set(
         Math.cos(angle) * pyramidRadius,
         baseHeight - 5 + Math.sin(i * 1.2) * 2, // Lower than spheres
@@ -625,7 +629,7 @@ class Killer7Scene {
       ];
 
       const geometry = debrisTypes[Math.floor(Math.random() * debrisTypes.length)];
-      const debris = new THREE.Mesh(geometry, material);
+      const debris = new THREE.Mesh(geometry, debrisMaterial);
 
       // Random positions around the diamond at high altitude
       const angle = Math.random() * Math.PI * 2;
@@ -664,10 +668,10 @@ class Killer7Scene {
     this.diamonds.push(centerPiece);
 
     // Additional floating diamonds with their own debris fields
-    this.createAdditionalDiamonds(material, baseHeight);
+    this.createAdditionalDiamonds(material, debrisMaterial, baseHeight);
   }
 
-  private createAdditionalDiamonds(material: THREE.ShaderMaterial, baseHeight: number): void {
+  private createAdditionalDiamonds(material: THREE.ShaderMaterial, debrisMaterial: THREE.MeshBasicMaterial, baseHeight: number): void {
     // Create 6 additional diamonds scattered around the valley - lower heights
     const diamondPositions = [
       { x: 80, z: 40, height: baseHeight + 5 },
@@ -705,7 +709,7 @@ class Killer7Scene {
         ];
 
         const geometry = debrisTypes[Math.floor(Math.random() * debrisTypes.length)];
-        const debris = new THREE.Mesh(geometry, material);
+        const debris = new THREE.Mesh(geometry, debrisMaterial);
 
         // Position debris around each diamond
         const angle = Math.random() * Math.PI * 2;
@@ -741,7 +745,7 @@ class Killer7Scene {
         ];
 
         const geometry = orbitalTypes[Math.floor(Math.random() * orbitalTypes.length)];
-        const orbital = new THREE.Mesh(geometry, material);
+        const orbital = new THREE.Mesh(geometry, debrisMaterial);
 
         // Larger orbital radius for bigger objects
         const angle = (i / orbitalCount) * Math.PI * 2 + Math.random() * 0.5;
@@ -807,6 +811,13 @@ class Killer7Scene {
     return new THREE.MeshBasicMaterial({
       color: 0x000000,  // Pure black, always visible
       side: THREE.DoubleSide  // Render both sides
+    });
+  }
+
+  private createDebrisMaterial(): THREE.MeshBasicMaterial {
+    return new THREE.MeshBasicMaterial({
+      color: 0x000000,  // Pure black like the diamonds
+      side: THREE.DoubleSide
     });
   }
 
