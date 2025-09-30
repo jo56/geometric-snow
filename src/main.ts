@@ -12,6 +12,8 @@ class Killer7Scene {
   private composer!: EffectComposer;
   private outlinePass!: OutlinePass;
   private geometryObjects: THREE.Object3D[] = [];
+  private animatedObjects: THREE.Object3D[] = [];
+  private clock = new THREE.Clock();
 
   constructor() {
     this.init();
@@ -127,6 +129,113 @@ class Killer7Scene {
     this.scene.add(light);
 
     // NO ambient light for pure blacks
+
+    // Add background architecture
+    this.createBackground();
+
+    // Add floating animated objects
+    this.createFloatingObjects();
+  }
+
+  private createBackground(): void {
+    const material = this.createBinaryToonMaterial();
+
+    // Create wall panels in the background
+    for (let i = 0; i < 5; i++) {
+      const wall = new THREE.Mesh(new THREE.BoxGeometry(3, 6, 0.2), material);
+      wall.position.set(-12 + i * 6, 3, -8);
+      wall.castShadow = true;
+      wall.receiveShadow = true;
+      this.scene.add(wall);
+      this.geometryObjects.push(wall);
+    }
+
+    // Create some backdrop pillars
+    for (let i = 0; i < 3; i++) {
+      const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.8, 8, 0.8), material);
+      pillar.position.set(-8 + i * 8, 4, -12);
+      pillar.castShadow = true;
+      pillar.receiveShadow = true;
+      this.scene.add(pillar);
+      this.geometryObjects.push(pillar);
+    }
+
+    // Create stepped platforms at different levels
+    for (let i = 0; i < 4; i++) {
+      const platform = new THREE.Mesh(new THREE.BoxGeometry(4, 0.5, 2), material);
+      platform.position.set(-6 + i * 4, 0.25 + i * 0.5, -5);
+      platform.castShadow = true;
+      platform.receiveShadow = true;
+      this.scene.add(platform);
+      this.geometryObjects.push(platform);
+    }
+
+    // Add some geometric backdrop elements
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(2, 0.3, 8, 16), material);
+    ring.position.set(0, 4, -10);
+    ring.rotation.x = Math.PI / 4;
+    ring.castShadow = true;
+    ring.receiveShadow = true;
+    this.scene.add(ring);
+    this.geometryObjects.push(ring);
+  }
+
+  private createFloatingObjects(): void {
+    const material = this.createBinaryToonMaterial();
+
+    // Floating spinning cubes
+    for (let i = 0; i < 4; i++) {
+      const cube = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), material);
+      cube.position.set(
+        -6 + Math.random() * 12,
+        4 + Math.random() * 3,
+        -2 + Math.random() * 4
+      );
+      cube.castShadow = true;
+      cube.receiveShadow = true;
+      this.scene.add(cube);
+      this.geometryObjects.push(cube);
+      this.animatedObjects.push(cube);
+    }
+
+    // Floating spheres
+    for (let i = 0; i < 3; i++) {
+      const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 6), material);
+      sphere.position.set(
+        -4 + Math.random() * 8,
+        2 + Math.random() * 4,
+        1 + Math.random() * 3
+      );
+      sphere.castShadow = true;
+      sphere.receiveShadow = true;
+      this.scene.add(sphere);
+      this.geometryObjects.push(sphere);
+      this.animatedObjects.push(sphere);
+    }
+
+    // Floating pyramids
+    for (let i = 0; i < 2; i++) {
+      const pyramid = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.2, 4), material);
+      pyramid.position.set(
+        -3 + Math.random() * 6,
+        3 + Math.random() * 2,
+        0 + Math.random() * 2
+      );
+      pyramid.castShadow = true;
+      pyramid.receiveShadow = true;
+      this.scene.add(pyramid);
+      this.geometryObjects.push(pyramid);
+      this.animatedObjects.push(pyramid);
+    }
+
+    // Large floating ring
+    const bigRing = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.2, 6, 12), material);
+    bigRing.position.set(4, 5, 1);
+    bigRing.castShadow = true;
+    bigRing.receiveShadow = true;
+    this.scene.add(bigRing);
+    this.geometryObjects.push(bigRing);
+    this.animatedObjects.push(bigRing);
   }
 
   private createBinaryToonMaterial(): THREE.ShaderMaterial {
@@ -164,6 +273,32 @@ class Killer7Scene {
 
   private animate = (): void => {
     requestAnimationFrame(this.animate);
+
+    const time = this.clock.getElapsedTime();
+
+    // Animate floating objects
+    this.animatedObjects.forEach((obj, index) => {
+      if (obj.geometry.type === 'BoxGeometry') {
+        // Spinning cubes
+        obj.rotation.x = time * 0.5 + index;
+        obj.rotation.y = time * 0.7 + index;
+        obj.position.y += Math.sin(time * 1.5 + index * 2) * 0.01;
+      } else if (obj.geometry.type === 'SphereGeometry') {
+        // Floating spheres - slow bob
+        obj.position.y += Math.sin(time * 0.8 + index * 3) * 0.02;
+        obj.rotation.z = time * 0.3 + index;
+      } else if (obj.geometry.type === 'ConeGeometry') {
+        // Pyramids - rotate and slight movement
+        obj.rotation.y = time * 1.2 + index;
+        obj.position.x += Math.sin(time * 0.6 + index * 4) * 0.01;
+      } else if (obj.geometry.type === 'TorusGeometry') {
+        // Rings - complex rotation
+        obj.rotation.x = time * 0.4 + index;
+        obj.rotation.y = time * 0.6 + index;
+        obj.rotation.z = time * 0.2 + index;
+      }
+    });
+
     this.controls.update();
     this.composer.render();
   };
