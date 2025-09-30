@@ -161,7 +161,7 @@ class Killer7Scene {
 
     // Animation toggle controls and camera switching
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' || e.key === 'f' || e.key === 'F') {
+      if (e.key === 'Escape' || e.key === 's' || e.key === 'S') {
         this.resetToOverview();
       } else if (e.key === 'p' || e.key === 'P') {
         // Toggle play/pause for current track
@@ -169,10 +169,19 @@ class Killer7Scene {
           this.toggleTrack(this.currentTrack);
         }
       } else if (e.key >= '1' && e.key <= '7') {
-        // Number keys for track selection (camera focus only)
+        // Number keys for track selection - toggle if already selected
         const trackIndex = parseInt(e.key) - 1;
-        this.focusOnDiamond(trackIndex);
-        this.updateTrackNameUI(trackIndex);
+        const trackElement = document.querySelector(`.track-name[data-diamond="${trackIndex}"]`);
+        const isCurrentlyActive = trackElement?.classList.contains('active');
+
+        if (isCurrentlyActive) {
+          // If already selected, go back to overview
+          this.resetToOverview();
+        } else {
+          // Otherwise, focus on this diamond
+          this.focusOnDiamond(trackIndex);
+          this.updateTrackNameUI(trackIndex);
+        }
       } else if ('qwertyuQWERTYU'.includes(e.key)) {
         // QWERTYU keys for playing tracks
         const playKeys = 'qwertyu';
