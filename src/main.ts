@@ -1715,8 +1715,16 @@ class Killer7Scene {
     document.querySelectorAll('.track-name').forEach(trackName => {
       trackName.addEventListener('click', (e) => {
         const diamondIndex = parseInt((e.target as HTMLElement).dataset.diamond || '0');
-        this.focusOnDiamond(diamondIndex);
-        this.updateTrackNameUI(diamondIndex);
+        const isCurrentlyActive = (e.target as HTMLElement).classList.contains('active');
+
+        if (isCurrentlyActive) {
+          // If clicking on already selected track, go back to overview
+          this.resetToOverview();
+        } else {
+          // Otherwise, focus on this diamond
+          this.focusOnDiamond(diamondIndex);
+          this.updateTrackNameUI(diamondIndex);
+        }
       });
     });
 
