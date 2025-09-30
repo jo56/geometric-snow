@@ -47,7 +47,8 @@ class Killer7Scene {
     this.updateLoadingProgress(100, 'Complete!');
 
     // Set camera to overview position immediately (no animation)
-    const originalPos = new THREE.Vector3(-80, 45, 40);
+    // Adjusted to be higher and to the left
+    const originalPos = new THREE.Vector3(-85, 52, 45);
     const originalTarget = new THREE.Vector3(30, 20, -20);
     const direction = originalPos.clone().sub(originalTarget).normalize();
     const zoomOutDistance = 60;
@@ -1634,8 +1635,8 @@ class Killer7Scene {
   }
 
   private setOverviewCamera(): void {
-    // Camera position zoomed out 5 scroll intervals from original angle
-    const originalPos = new THREE.Vector3(-80, 45, 40);
+    // Camera position zoomed out - higher and to the left
+    const originalPos = new THREE.Vector3(-85, 52, 45);
     const originalTarget = new THREE.Vector3(30, 20, -20);
 
     // Calculate direction from target to camera
