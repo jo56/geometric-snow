@@ -43,6 +43,62 @@
         display: none; /* Hide the UI by default */
       }
 
+      #music-player {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        z-index: 100;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 12px;
+        font-weight: bold;
+      }
+
+      .track {
+        display: flex;
+        margin-bottom: 0px;
+        gap: 0px;
+      }
+
+      .track-name {
+        background: #fff;
+        color: #000;
+        border: 2px solid #000;
+        padding: 6px 12px;
+        cursor: pointer;
+        min-width: 140px;
+        text-align: center;
+        user-select: none;
+      }
+
+      .track-name:hover {
+        background: #f0f0f0;
+      }
+
+      .track-name.active {
+        background: #000;
+        color: #fff;
+      }
+
+      .play-button {
+        background: #fff;
+        color: #000;
+        border: 2px solid #000;
+        padding: 6px 10px;
+        cursor: pointer;
+        width: 40px;
+        text-align: center;
+        user-select: none;
+      }
+
+      .play-button:hover {
+        background: #f0f0f0;
+      }
+
+      .play-button.playing {
+        background: #000;
+        color: #fff;
+      }
+
       .control-group {
         margin-bottom: 15px;
       }
@@ -87,6 +143,46 @@
   </head>
   <body>
     <div id="app">
+      <div id="music-player">
+        <div class="track">
+          <div class="track-name" data-diamond="0">NEXUS</div>
+          <div class="play-button" data-diamond="0">▶</div>
+        </div>
+        <div class="track">
+          <div class="track-name" data-diamond="1">FRAGMENT</div>
+          <div class="play-button" data-diamond="1">▶</div>
+        </div>
+        <div class="track">
+          <div class="track-name" data-diamond="2">ECHO</div>
+          <div class="play-button" data-diamond="2">▶</div>
+        </div>
+        <div class="track">
+          <div class="track-name" data-diamond="3">VOID</div>
+          <div class="play-button" data-diamond="3">▶</div>
+        </div>
+        <div class="track">
+          <div class="track-name" data-diamond="4">DRIFT</div>
+          <div class="play-button" data-diamond="4">▶</div>
+        </div>
+        <div class="track">
+          <div class="track-name" data-diamond="5">PULSE</div>
+          <div class="play-button" data-diamond="5">▶</div>
+        </div>
+        <div class="track">
+          <div class="track-name" data-diamond="6">STATIC</div>
+          <div class="play-button" data-diamond="6">▶</div>
+        </div>
+      </div>
+
+      <!-- Audio elements for each track -->
+      <audio id="audio-0" loop preload="auto"><source src="./audio/nexus.ogg" type="audio/ogg"></audio>
+      <audio id="audio-1" loop preload="auto"><source src="./audio/fragment.ogg" type="audio/ogg"></audio>
+      <audio id="audio-2" loop preload="auto"><source src="./audio/echo.ogg" type="audio/ogg"></audio>
+      <audio id="audio-3" loop preload="auto"><source src="./audio/void.ogg" type="audio/ogg"></audio>
+      <audio id="audio-4" loop preload="auto"><source src="./audio/drift.ogg" type="audio/ogg"></audio>
+      <audio id="audio-5" loop preload="auto"><source src="./audio/pulse.ogg" type="audio/ogg"></audio>
+      <audio id="audio-6" loop preload="auto"><source src="./audio/static.ogg" type="audio/ogg"></audio>
+
       <div id="ui">
         <div class="control-group">
           <label>Outline Thickness</label>

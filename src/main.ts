@@ -18,6 +18,9 @@ class Killer7Scene {
   private diamonds: THREE.Mesh[] = [];
   private raycaster = new THREE.Raycaster();
   private mouse = new THREE.Vector2();
+  private spinningDiamonds = new Set<number>();
+  private currentAudio: HTMLAudioElement | null = null;
+  private currentTrack: number = -1;
 
   constructor() {
     this.init();
@@ -35,7 +38,7 @@ class Killer7Scene {
   private init(): void {
     // Scene
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0xffffff);
+    this.scene.background = new THREE.Color(0xf8f8f8); // Very light gray background
 
     // Camera - updated for much larger terrain with better culling
     this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -83,7 +86,7 @@ class Killer7Scene {
       if (e.key === 'p' || e.key === 'P') {
         this.toggleAnimation();
       } else if (e.key === 'Escape') {
-        this.setOverviewCamera();
+        this.resetToOverview();
       }
     });
 
@@ -91,6 +94,9 @@ class Killer7Scene {
     window.addEventListener('click', (e) => {
       this.onMouseClick(e);
     });
+
+    // Music player event listeners
+    this.setupMusicPlayer();
   }
 
   private setupPostProcessing(): void {
@@ -559,6 +565,10 @@ class Killer7Scene {
 
   private createFloatingObjects(): void {
     const material = this.createBinaryToonMaterial();
+    const debrisMaterial = new THREE.MeshBasicMaterial({
+      color: 0x000000,
+      side: THREE.DoubleSide
+    });
 
     // Ring 1: Outer ring of cubes (radius 25, high altitude)
     const cubeCount = 8;
@@ -566,7 +576,7 @@ class Killer7Scene {
     const baseHeight = 35; // Much higher floating height
     for (let i = 0; i < cubeCount; i++) {
       const angle = (i / cubeCount) * Math.PI * 2;
-      const cube = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), material);
+      const cube = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), debrisMaterial);
       cube.position.set(
         Math.cos(angle) * cubeRadius,
         baseHeight + Math.sin(i * 0.5) * 4, // Higher with more variation
@@ -584,7 +594,7 @@ class Killer7Scene {
     const sphereRadius = 18;
     for (let i = 0; i < sphereCount; i++) {
       const angle = (i / sphereCount) * Math.PI * 2;
-      const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.8, 8, 6), material);
+      const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.8, 8, 6), debrisMaterial);
       sphere.position.set(
         Math.cos(angle) * sphereRadius,
         baseHeight - 2 + Math.cos(i * 0.8) * 3, // Slightly lower than cubes
@@ -602,7 +612,7 @@ class Killer7Scene {
     const pyramidRadius = 12;
     for (let i = 0; i < pyramidCount; i++) {
       const angle = (i / pyramidCount) * Math.PI * 2;
-      const pyramid = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.8, 4), material);
+      const pyramid = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.8, 4), debrisMaterial);
       pyramid.position.set(
         Math.cos(angle) * pyramidRadius,
         baseHeight - 5 + Math.sin(i * 1.2) * 2, // Lower than spheres
@@ -625,7 +635,7 @@ class Killer7Scene {
       ];
 
       const geometry = debrisTypes[Math.floor(Math.random() * debrisTypes.length)];
-      const debris = new THREE.Mesh(geometry, material);
+      const debris = new THREE.Mesh(geometry, debrisMaterial);
 
       // Random positions around the diamond at high altitude
       const angle = Math.random() * Math.PI * 2;
@@ -652,7 +662,8 @@ class Killer7Scene {
     }
 
     // Central focal point - massive floating diamond
-    const centerPiece = new THREE.Mesh(new THREE.OctahedronGeometry(4), material); // Much larger
+    const diamondMaterial = this.createDiamondMaterial();
+    const centerPiece = this.createHalfDiamond(4, diamondMaterial); // Much larger
     centerPiece.position.set(0, baseHeight + 8, 0); // High in the sky
     centerPiece.castShadow = true;
     centerPiece.receiveShadow = true;
@@ -663,10 +674,10 @@ class Killer7Scene {
     this.diamonds.push(centerPiece);
 
     // Additional floating diamonds with their own debris fields
-    this.createAdditionalDiamonds(material, baseHeight);
+    this.createAdditionalDiamonds(material, debrisMaterial, baseHeight);
   }
 
-  private createAdditionalDiamonds(material: THREE.ShaderMaterial, baseHeight: number): void {
+  private createAdditionalDiamonds(material: THREE.ShaderMaterial, debrisMaterial: THREE.MeshBasicMaterial, baseHeight: number): void {
     // Create 6 additional diamonds scattered around the valley - lower heights
     const diamondPositions = [
       { x: 80, z: 40, height: baseHeight + 5 },
@@ -678,9 +689,9 @@ class Killer7Scene {
     ];
 
     diamondPositions.forEach((pos, index) => {
-      // Create smaller diamond (varied sizes)
+      // Create smaller diamond (varied sizes) with consistent black material
       const diamondSize = 2.5 + Math.random() * 1.5; // 2.5-4 units
-      const diamond = new THREE.Mesh(new THREE.OctahedronGeometry(diamondSize), material);
+      const diamond = this.createHalfDiamond(diamondSize, this.createDiamondMaterial());
       diamond.position.set(pos.x, pos.height, pos.z);
       diamond.castShadow = true;
       diamond.receiveShadow = true;
@@ -704,7 +715,7 @@ class Killer7Scene {
         ];
 
         const geometry = debrisTypes[Math.floor(Math.random() * debrisTypes.length)];
-        const debris = new THREE.Mesh(geometry, material);
+        const debris = new THREE.Mesh(geometry, debrisMaterial);
 
         // Position debris around each diamond
         const angle = Math.random() * Math.PI * 2;
@@ -740,7 +751,7 @@ class Killer7Scene {
         ];
 
         const geometry = orbitalTypes[Math.floor(Math.random() * orbitalTypes.length)];
-        const orbital = new THREE.Mesh(geometry, material);
+        const orbital = new THREE.Mesh(geometry, debrisMaterial);
 
         // Larger orbital radius for bigger objects
         const angle = (i / orbitalCount) * Math.PI * 2 + Math.random() * 0.5;
@@ -792,13 +803,68 @@ class Killer7Scene {
           vec3 normal = normalize(vNormal);
           float NdotL = max(dot(normal, lightDirection), 0.0);
 
-          // Binary step - no grays!
+          // Binary step - but with grayer tones for both dark and light
           float shade = step(0.5, NdotL);
+          vec3 color = mix(vec3(0.2), vec3(0.85), shade);  // Dark gray to light gray
 
-          gl_FragColor = vec4(vec3(shade), 1.0);
+          gl_FragColor = vec4(color, 1.0);
         }
       `
     });
+  }
+
+  private createDiamondMaterial(): THREE.MeshBasicMaterial {
+    return new THREE.MeshBasicMaterial({
+      color: 0x000000,  // Pure black, always visible
+      side: THREE.DoubleSide  // Render both sides
+    });
+  }
+
+  private createDebrisMaterial(): THREE.MeshBasicMaterial {
+    return new THREE.MeshBasicMaterial({
+      color: 0x000000,  // Pure black like the diamonds
+      side: THREE.DoubleSide
+    });
+  }
+
+  private createHalfDiamond(size: number, material: THREE.Material): THREE.Mesh {
+    // Create bottom half of diamond manually
+    const geometry = new THREE.BufferGeometry();
+
+    // Define vertices for bottom half of octahedron
+    const vertices = new Float32Array([
+      // Bottom point
+      0, -size, 0,
+
+      // Middle ring (8 points around the equator)
+      size, 0, 0,
+      size * 0.707, 0, size * 0.707,
+      0, 0, size,
+      -size * 0.707, 0, size * 0.707,
+      -size, 0, 0,
+      -size * 0.707, 0, -size * 0.707,
+      0, 0, -size,
+      size * 0.707, 0, -size * 0.707
+    ]);
+
+    // Define faces (triangles connecting bottom point to edge ring)
+    const indices = [
+      // Bottom triangles - reverse winding for proper normals
+      0, 2, 1,
+      0, 3, 2,
+      0, 4, 3,
+      0, 5, 4,
+      0, 6, 5,
+      0, 7, 6,
+      0, 8, 7,
+      0, 1, 8
+    ];
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+
+    return new THREE.Mesh(geometry, material);
   }
 
   private toggleAnimation(): void {
@@ -850,10 +916,37 @@ class Killer7Scene {
     console.log(`Focusing on diamond ${diamondIndex}`);
   }
 
+  private resetToOverview(): void {
+    // Stop any currently playing music
+    this.stopCurrentTrack();
+
+    // Clear all UI selections
+    this.clearUISelections();
+
+    // Set overview camera
+    this.setOverviewCamera();
+  }
+
+  private clearUISelections(): void {
+    // Remove active class from all track names
+    document.querySelectorAll('.track-name').forEach(el => el.classList.remove('active'));
+  }
+
   private setOverviewCamera(): void {
-    // High overview position to see all diamonds
-    const overviewPosition = new THREE.Vector3(0, 80, 80);
-    const overviewTarget = new THREE.Vector3(0, 40, 0);
+    // Camera position zoomed out 5 scroll intervals from original angle
+    const originalPos = new THREE.Vector3(-80, 45, 40);
+    const originalTarget = new THREE.Vector3(30, 20, -20);
+
+    // Calculate direction from target to camera
+    const direction = originalPos.clone().sub(originalTarget).normalize();
+
+    // Move camera further away (each scroll ~= 10-15 units, so 5 scrolls ~= 60 units)
+    const zoomOutDistance = 60;
+    const overviewPosition = originalTarget.clone().add(direction.multiplyScalar(originalPos.distanceTo(originalTarget) + zoomOutDistance));
+    const overviewTarget = originalTarget.clone();
+
+    console.log('Overview Position:', overviewPosition);
+    console.log('Overview Target:', overviewTarget);
 
     this.animateToPosition(overviewPosition, overviewTarget, 2500);
     console.log('Overview camera activated');
@@ -891,6 +984,94 @@ class Killer7Scene {
     }
   }
 
+  private setupMusicPlayer(): void {
+    // Track name click handlers (camera view only)
+    document.querySelectorAll('.track-name').forEach(trackName => {
+      trackName.addEventListener('click', (e) => {
+        const diamondIndex = parseInt((e.target as HTMLElement).dataset.diamond || '0');
+        this.focusOnDiamond(diamondIndex);
+        this.updateTrackNameUI(diamondIndex);
+      });
+    });
+
+    // Play button click handlers (spinning + audio + camera view)
+    document.querySelectorAll('.play-button').forEach(playButton => {
+      playButton.addEventListener('click', (e) => {
+        const diamondIndex = parseInt((e.target as HTMLElement).dataset.diamond || '0');
+        this.toggleTrack(diamondIndex);
+      });
+    });
+  }
+
+  private updateTrackNameUI(diamondIndex: number): void {
+    // Remove active class from all track names
+    document.querySelectorAll('.track-name').forEach(el => el.classList.remove('active'));
+    // Add active class to current track name
+    document.querySelector(`.track-name[data-diamond="${diamondIndex}"]`)?.classList.add('active');
+  }
+
+  private updatePlayButtonUI(diamondIndex: number, isPlaying: boolean): void {
+    const playButton = document.querySelector(`.play-button[data-diamond="${diamondIndex}"]`) as HTMLElement;
+    if (playButton) {
+      playButton.textContent = isPlaying ? '⏸' : '▶';
+      if (isPlaying) {
+        playButton.classList.add('playing');
+      } else {
+        playButton.classList.remove('playing');
+      }
+    }
+  }
+
+  private toggleTrack(diamondIndex: number): void {
+    const audio = document.getElementById(`audio-${diamondIndex}`) as HTMLAudioElement;
+    if (!audio) return;
+
+    // If this track is already playing, pause it
+    if (this.currentTrack === diamondIndex && this.currentAudio && !this.currentAudio.paused) {
+      this.stopCurrentTrack();
+      return;
+    }
+
+    // Stop any currently playing track
+    this.stopCurrentTrack();
+
+    // Start new track
+    this.currentTrack = diamondIndex;
+    this.currentAudio = audio;
+
+    // Start spinning diamond
+    this.spinningDiamonds.add(diamondIndex);
+
+    // Focus camera on diamond
+    this.focusOnDiamond(diamondIndex);
+
+    // Update UI
+    this.updateTrackNameUI(diamondIndex);
+    this.updatePlayButtonUI(diamondIndex, true);
+
+    // Play audio
+    audio.currentTime = 0;
+    audio.play().catch(e => console.log('Audio play failed:', e));
+  }
+
+  private stopCurrentTrack(): void {
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio.currentTime = 0;
+    }
+
+    if (this.currentTrack >= 0) {
+      // Stop spinning diamond
+      this.spinningDiamonds.delete(this.currentTrack);
+
+      // Update UI
+      this.updatePlayButtonUI(this.currentTrack, false);
+    }
+
+    this.currentAudio = null;
+    this.currentTrack = -1;
+  }
+
   private animate = (): void => {
     requestAnimationFrame(this.animate);
 
@@ -917,6 +1098,13 @@ class Killer7Scene {
           obj.rotation.x = time * 0.4 + index;
           obj.rotation.y = time * 0.6 + index;
           obj.rotation.z = time * 0.2 + index;
+        }
+      });
+
+      // Animate spinning diamonds
+      this.spinningDiamonds.forEach(diamondIndex => {
+        if (this.diamonds[diamondIndex]) {
+          this.diamonds[diamondIndex].rotation.y = time * 2.0; // Spin around Y axis
         }
       });
     }
