@@ -648,14 +648,14 @@ class Killer7Scene {
   }
 
   private createAdditionalDiamonds(material: THREE.ShaderMaterial, baseHeight: number): void {
-    // Create 6 additional diamonds scattered around the valley
+    // Create 6 additional diamonds scattered around the valley - lower heights
     const diamondPositions = [
-      { x: 80, z: 40, height: baseHeight + 15 },
-      { x: -60, z: 70, height: baseHeight + 20 },
-      { x: 45, z: -85, height: baseHeight + 12 },
-      { x: -90, z: -30, height: baseHeight + 25 },
-      { x: 20, z: 100, height: baseHeight + 18 },
-      { x: -40, z: -70, height: baseHeight + 22 }
+      { x: 80, z: 40, height: baseHeight + 5 },
+      { x: -60, z: 70, height: baseHeight + 8 },
+      { x: 45, z: -85, height: baseHeight + 3 },
+      { x: -90, z: -30, height: baseHeight + 10 },
+      { x: 20, z: 100, height: baseHeight + 6 },
+      { x: -40, z: -70, height: baseHeight + 7 }
     ];
 
     diamondPositions.forEach((pos, index) => {
