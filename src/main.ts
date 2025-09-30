@@ -103,21 +103,50 @@ class Killer7Scene {
   }
 
   private createTerrain(material: THREE.ShaderMaterial): void {
-    // Create main large platform with varied heights - VASTLY EXPANDED
-    const terrainSize = 200; // Increased from 60 to 200
-    const segments = 80; // Increased segments for more detail
+    // Create massive mountainous terrain expanding to horizon
+    const terrainSize = 800; // Massive increase to reach horizon
+    const segments = 120; // More detail for mountains
     const terrainGeometry = new THREE.PlaneGeometry(terrainSize, terrainSize, segments, segments);
 
-    // Add height variation to vertices
+    // Add mountainous height variation
     const positions = terrainGeometry.attributes.position.array as Float32Array;
     for (let i = 0; i < positions.length; i += 3) {
       const x = positions[i];
       const z = positions[i + 2];
-      // Create varied terrain with noise-like patterns
-      positions[i + 1] = Math.sin(x * 0.03) * Math.cos(z * 0.03) * 3 +
-                         Math.sin(x * 0.015) * Math.sin(z * 0.02) * 2.5 +
-                         Math.sin(x * 0.08) * Math.cos(z * 0.07) * 1 +
-                         (Math.random() - 0.5) * 0.8;
+
+      // Distance from center for mountainous effect
+      const distanceFromCenter = Math.sqrt(x * x + z * z);
+      const mountainHeight = Math.max(0, 1 - distanceFromCenter / 300); // Gradual falloff
+
+      // Multiple layers of terrain generation
+      let height = 0;
+
+      // Base mountainous terrain - large scale features
+      height += Math.sin(x * 0.008) * Math.cos(z * 0.008) * 15 * mountainHeight;
+      height += Math.sin(x * 0.005) * Math.sin(z * 0.006) * 20 * mountainHeight;
+
+      // Medium scale hills and valleys
+      height += Math.sin(x * 0.02) * Math.cos(z * 0.025) * 8 * mountainHeight;
+      height += Math.cos(x * 0.015) * Math.sin(z * 0.018) * 6 * mountainHeight;
+
+      // Small scale detail
+      height += Math.sin(x * 0.08) * Math.cos(z * 0.07) * 2;
+      height += (Math.random() - 0.5) * 1.5;
+
+      // Create dramatic peaks near center
+      if (distanceFromCenter < 100) {
+        const peakMultiplier = (100 - distanceFromCenter) / 100;
+        height += Math.sin(x * 0.03) * Math.cos(z * 0.03) * 12 * peakMultiplier;
+        height += Math.sin(x * 0.045) * Math.sin(z * 0.04) * 8 * peakMultiplier;
+      }
+
+      // Distant horizon mountains
+      if (distanceFromCenter > 250) {
+        const horizonEffect = (distanceFromCenter - 250) / 150;
+        height += Math.sin(x * 0.003) * Math.cos(z * 0.003) * 25 * Math.min(horizonEffect, 1);
+      }
+
+      positions[i + 1] = height;
     }
     terrainGeometry.computeVertexNormals();
 
@@ -127,6 +156,73 @@ class Killer7Scene {
     this.scene.add(terrain);
     this.geometryObjects.push(terrain);
 
+    // Add distant mountain silhouettes on the horizon
+    this.createHorizonMountains(material);
+  }
+
+  private createHorizonMountains(material: THREE.ShaderMaterial): void {
+    // Create distant mountain ranges on horizon
+    const mountainRanges = 8;
+    const baseRadius = 350;
+
+    for (let range = 0; range < mountainRanges; range++) {
+      const angle = (range / mountainRanges) * Math.PI * 2;
+      const rangeRadius = baseRadius + Math.random() * 100;
+
+      // Create mountain range with multiple peaks
+      const peaksInRange = 5 + Math.floor(Math.random() * 8);
+
+      for (let peak = 0; peak < peaksInRange; peak++) {
+        const peakAngle = angle + (peak - peaksInRange/2) * 0.3;
+        const peakRadius = rangeRadius + (Math.random() - 0.5) * 50;
+
+        const mountain = new THREE.Mesh(
+          new THREE.ConeGeometry(
+            8 + Math.random() * 12,  // Base radius
+            20 + Math.random() * 40,  // Height
+            6 + Math.floor(Math.random() * 4) // Segments
+          ),
+          material
+        );
+
+        mountain.position.set(
+          Math.cos(peakAngle) * peakRadius,
+          10 + Math.random() * 15,
+          Math.sin(peakAngle) * peakRadius
+        );
+
+        mountain.rotation.y = Math.random() * Math.PI;
+        mountain.castShadow = true;
+        mountain.receiveShadow = true;
+        this.scene.add(mountain);
+        this.geometryObjects.push(mountain);
+      }
+    }
+
+    // Add some massive backdrop peaks for drama
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2;
+      const distance = 450 + Math.random() * 100;
+
+      const massivePeak = new THREE.Mesh(
+        new THREE.ConeGeometry(25, 80 + Math.random() * 40, 8),
+        material
+      );
+
+      massivePeak.position.set(
+        Math.cos(angle) * distance,
+        40,
+        Math.sin(angle) * distance
+      );
+
+      massivePeak.castShadow = true;
+      massivePeak.receiveShadow = true;
+      this.scene.add(massivePeak);
+      this.geometryObjects.push(massivePeak);
+    }
+  }
+
+  private createTerrainElements(material: THREE.ShaderMaterial): void {
     // Add scattered platform pieces at different levels - spread across larger area
     for (let i = 0; i < 40; i++) { // Increased from 15 to 40
       const platformSize = 3 + Math.random() * 6;
@@ -137,9 +233,9 @@ class Killer7Scene {
       );
 
       platform.position.set(
-        (Math.random() - 0.5) * 180, // Increased spread from 50 to 180
+        (Math.random() - 0.5) * 350, // Increased spread for mountainous terrain
         platformHeight / 2 + Math.random() * 3,
-        (Math.random() - 0.5) * 180  // Increased spread from 50 to 180
+        (Math.random() - 0.5) * 350  // Increased spread for mountainous terrain
       );
       platform.rotation.y = Math.random() * Math.PI;
       platform.castShadow = true;
@@ -159,8 +255,8 @@ class Killer7Scene {
           material
         );
 
-        const baseX = (Math.random() - 0.5) * 160; // Increased from 40 to 160
-        const baseZ = (Math.random() - 0.5) * 160; // Increased from 40 to 160
+        const baseX = (Math.random() - 0.5) * 300; // Increased for larger terrain
+        const baseZ = (Math.random() - 0.5) * 300; // Increased for larger terrain
 
         step.position.set(
           baseX,
@@ -187,9 +283,9 @@ class Killer7Scene {
       const landmark = new THREE.Mesh(geometry, material);
 
       landmark.position.set(
-        (Math.random() - 0.5) * 170, // Spread across the terrain
+        (Math.random() - 0.5) * 320, // Spread across mountainous terrain
         3 + Math.random() * 4,
-        (Math.random() - 0.5) * 170
+        (Math.random() - 0.5) * 320
       );
 
       landmark.rotation.y = Math.random() * Math.PI;
@@ -198,16 +294,136 @@ class Killer7Scene {
       this.scene.add(landmark);
       this.geometryObjects.push(landmark);
     }
+
+    // Add vertical stacks of rectangles for dramatic verticality
+    this.createVerticalStacks(material);
+  }
+
+  private createVerticalStacks(material: THREE.ShaderMaterial): void {
+    // Create tall stacks of rectangular blocks
+    for (let stack = 0; stack < 25; stack++) {
+      const stackHeight = 5 + Math.floor(Math.random() * 12); // 5-16 blocks high
+      const baseSize = 2 + Math.random() * 4; // Base size variety
+
+      // Stack position
+      const stackX = (Math.random() - 0.5) * 300;
+      const stackZ = (Math.random() - 0.5) * 300;
+
+      let currentHeight = 0;
+
+      for (let block = 0; block < stackHeight; block++) {
+        // Vary block dimensions for each level
+        const blockWidth = baseSize + (Math.random() - 0.5) * 1;
+        const blockHeight = 0.8 + Math.random() * 1.2;
+        const blockDepth = baseSize + (Math.random() - 0.5) * 1;
+
+        const stackBlock = new THREE.Mesh(
+          new THREE.BoxGeometry(blockWidth, blockHeight, blockDepth),
+          material
+        );
+
+        // Position block with slight random offset for organic look
+        stackBlock.position.set(
+          stackX + (Math.random() - 0.5) * 0.5,
+          currentHeight + blockHeight / 2,
+          stackZ + (Math.random() - 0.5) * 0.5
+        );
+
+        // Slight rotation for each block
+        stackBlock.rotation.y = (Math.random() - 0.5) * 0.2;
+
+        stackBlock.castShadow = true;
+        stackBlock.receiveShadow = true;
+        this.scene.add(stackBlock);
+        this.geometryObjects.push(stackBlock);
+
+        currentHeight += blockHeight;
+      }
+    }
+
+    // Create some extremely tall spire-like stacks
+    for (let spire = 0; spire < 8; spire++) {
+      const spireHeight = 15 + Math.floor(Math.random() * 20); // Very tall
+      const baseSize = 1.5 + Math.random() * 2;
+
+      const spireX = (Math.random() - 0.5) * 250;
+      const spireZ = (Math.random() - 0.5) * 250;
+
+      let currentHeight = 0;
+
+      for (let block = 0; block < spireHeight; block++) {
+        // Taper the spire as it goes up
+        const taper = 1 - (block / spireHeight) * 0.6;
+        const blockWidth = baseSize * taper;
+        const blockHeight = 0.6 + Math.random() * 0.8;
+        const blockDepth = baseSize * taper;
+
+        const spireBlock = new THREE.Mesh(
+          new THREE.BoxGeometry(blockWidth, blockHeight, blockDepth),
+          material
+        );
+
+        spireBlock.position.set(
+          spireX + (Math.random() - 0.5) * 0.2,
+          currentHeight + blockHeight / 2,
+          spireZ + (Math.random() - 0.5) * 0.2
+        );
+
+        spireBlock.rotation.y = (Math.random() - 0.5) * 0.1;
+
+        spireBlock.castShadow = true;
+        spireBlock.receiveShadow = true;
+        this.scene.add(spireBlock);
+        this.geometryObjects.push(spireBlock);
+
+        currentHeight += blockHeight;
+      }
+    }
+
+    // Create some stepped pyramid-like structures
+    for (let pyramid = 0; pyramid < 6; pyramid++) {
+      const levels = 4 + Math.floor(Math.random() * 6);
+      const baseSize = 6 + Math.random() * 4;
+
+      const pyramidX = (Math.random() - 0.5) * 280;
+      const pyramidZ = (Math.random() - 0.5) * 280;
+
+      for (let level = 0; level < levels; level++) {
+        const levelSize = baseSize * (1 - level / levels * 0.7);
+        const levelHeight = 1.5 + Math.random() * 1;
+
+        const pyramidLevel = new THREE.Mesh(
+          new THREE.BoxGeometry(levelSize, levelHeight, levelSize),
+          material
+        );
+
+        pyramidLevel.position.set(
+          pyramidX,
+          level * levelHeight + levelHeight / 2,
+          pyramidZ
+        );
+
+        pyramidLevel.rotation.y = level * 0.2; // Slight rotation per level
+
+        pyramidLevel.castShadow = true;
+        pyramidLevel.receiveShadow = true;
+        this.scene.add(pyramidLevel);
+        this.geometryObjects.push(pyramidLevel);
+      }
+    }
   }
 
   private createScene(): void {
     // Create binary toon material
     const material = this.createBinaryToonMaterial();
 
-    // Create larger, more varied terrain
+    // Create massive mountainous terrain
     this.createTerrain(material);
 
-    // Cubes
+    // Create terrain elements (platforms, steps, landmarks)
+    this.createTerrainElements(material);
+
+    // Basic scene objects
     for (let i = 0; i < 3; i++) {
       const cube = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), material);
       cube.position.set(-3 + i * 3, 0.5, 2);
@@ -217,7 +433,6 @@ class Killer7Scene {
       this.geometryObjects.push(cube);
     }
 
-    // Columns
     for (let i = 0; i < 2; i++) {
       const column = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 3, 8), material);
       column.position.set(-4 + i * 8, 1.5, -2);
