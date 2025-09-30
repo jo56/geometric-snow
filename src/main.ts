@@ -83,10 +83,25 @@ class Killer7Scene {
 
     // Animation toggle controls and camera switching
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'p' || e.key === 'P') {
-        this.toggleAnimation();
-      } else if (e.key === 'Escape') {
+      if (e.key === 'Escape' || e.key === 'f' || e.key === 'F') {
         this.resetToOverview();
+      } else if (e.key === 'p' || e.key === 'P') {
+        // Toggle play/pause for current track
+        if (this.currentTrack >= 0) {
+          this.toggleTrack(this.currentTrack);
+        }
+      } else if (e.key >= '1' && e.key <= '7') {
+        // Number keys for track selection (camera focus only)
+        const trackIndex = parseInt(e.key) - 1;
+        this.focusOnDiamond(trackIndex);
+        this.updateTrackNameUI(trackIndex);
+      } else if ('qwertyuQWERTYU'.includes(e.key)) {
+        // QWERTYU keys for playing tracks
+        const playKeys = 'qwertyu';
+        const trackIndex = playKeys.indexOf(e.key.toLowerCase());
+        if (trackIndex !== -1) {
+          this.toggleTrack(trackIndex);
+        }
       }
     });
 
