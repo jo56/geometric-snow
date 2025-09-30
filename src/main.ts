@@ -303,13 +303,13 @@ class Killer7Scene {
   private createFloatingObjects(): void {
     const material = this.createBinaryToonMaterial();
 
-    // Floating spinning cubes
-    for (let i = 0; i < 4; i++) {
+    // Floating spinning cubes - spread across larger area
+    for (let i = 0; i < 6; i++) {
       const cube = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), material);
       cube.position.set(
-        -6 + Math.random() * 12,
-        4 + Math.random() * 3,
-        -2 + Math.random() * 4
+        (Math.random() - 0.5) * 40, // -20 to +20
+        4 + Math.random() * 6,      // 4 to 10 height
+        (Math.random() - 0.5) * 40  // -20 to +20
       );
       cube.castShadow = true;
       cube.receiveShadow = true;
@@ -318,13 +318,13 @@ class Killer7Scene {
       this.animatedObjects.push(cube);
     }
 
-    // Floating spheres
-    for (let i = 0; i < 3; i++) {
+    // Floating spheres - spread out more
+    for (let i = 0; i < 5; i++) {
       const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 6), material);
       sphere.position.set(
-        -4 + Math.random() * 8,
-        2 + Math.random() * 4,
-        1 + Math.random() * 3
+        (Math.random() - 0.5) * 35, // -17.5 to +17.5
+        3 + Math.random() * 5,      // 3 to 8 height
+        (Math.random() - 0.5) * 35  // -17.5 to +17.5
       );
       sphere.castShadow = true;
       sphere.receiveShadow = true;
@@ -333,13 +333,13 @@ class Killer7Scene {
       this.animatedObjects.push(sphere);
     }
 
-    // Floating pyramids
-    for (let i = 0; i < 2; i++) {
+    // Floating pyramids - more spread out
+    for (let i = 0; i < 4; i++) {
       const pyramid = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.2, 4), material);
       pyramid.position.set(
-        -3 + Math.random() * 6,
-        3 + Math.random() * 2,
-        0 + Math.random() * 2
+        (Math.random() - 0.5) * 30, // -15 to +15
+        2 + Math.random() * 4,      // 2 to 6 height
+        (Math.random() - 0.5) * 30  // -15 to +15
       );
       pyramid.castShadow = true;
       pyramid.receiveShadow = true;
@@ -348,14 +348,20 @@ class Killer7Scene {
       this.animatedObjects.push(pyramid);
     }
 
-    // Large floating ring
-    const bigRing = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.2, 6, 12), material);
-    bigRing.position.set(4, 5, 1);
-    bigRing.castShadow = true;
-    bigRing.receiveShadow = true;
-    this.scene.add(bigRing);
-    this.geometryObjects.push(bigRing);
-    this.animatedObjects.push(bigRing);
+    // Multiple floating rings at different positions
+    for (let i = 0; i < 3; i++) {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(1.2, 0.2, 6, 12), material);
+      ring.position.set(
+        (Math.random() - 0.5) * 25, // -12.5 to +12.5
+        5 + Math.random() * 4,      // 5 to 9 height
+        (Math.random() - 0.5) * 25  // -12.5 to +12.5
+      );
+      ring.castShadow = true;
+      ring.receiveShadow = true;
+      this.scene.add(ring);
+      this.geometryObjects.push(ring);
+      this.animatedObjects.push(ring);
+    }
   }
 
   private createBinaryToonMaterial(): THREE.ShaderMaterial {
