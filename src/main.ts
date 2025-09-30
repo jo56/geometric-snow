@@ -851,9 +851,9 @@ class Killer7Scene {
   }
 
   private setOverviewCamera(): void {
-    // More horizontal view matching the starting angle image
-    const overviewPosition = new THREE.Vector3(-40, 35, 60);
-    const overviewTarget = new THREE.Vector3(20, 25, -10);
+    // Camera position matching starting-angle-2.png with diagonal valley view
+    const overviewPosition = new THREE.Vector3(-80, 45, 40);
+    const overviewTarget = new THREE.Vector3(30, 20, -20);
 
     this.animateToPosition(overviewPosition, overviewTarget, 2500);
     console.log('Overview camera activated');
