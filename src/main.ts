@@ -28,7 +28,7 @@ class Killer7Scene {
     this.setupPostProcessing();
     this.animate();
 
-    // Start with fade-in and overview animation after delay
+    // Start with fade-in and overview animation after delay for mountain generation
     setTimeout(() => {
       this.fadeInScene();
       this.setOverviewCamera();
@@ -196,64 +196,128 @@ class Killer7Scene {
   }
 
   private createHorizonMountains(material: THREE.ShaderMaterial): void {
-    // Optimized mountain system - fewer mountains but strategic placement
+    // Dense mountain system to create a complete mountain wall
 
-    // Mountain wall ring - optimized for performance
-    const mountainCount = 16; // Reduced from 100+ mountains
-    const baseRadius = 400;
+    // Inner mountain ring - close wall
+    const innerCount = 24;
+    const innerRadius = 350;
 
-    for (let i = 0; i < mountainCount; i++) {
-      const angle = (i / mountainCount) * Math.PI * 2;
-      const radius = baseRadius + (Math.random() - 0.5) * 100;
+    for (let i = 0; i < innerCount; i++) {
+      const angle = (i / innerCount) * Math.PI * 2;
+      const radius = innerRadius + (Math.random() - 0.5) * 60;
 
-      const mountainHeight = 200 + Math.random() * 150;
+      const mountainHeight = 180 + Math.random() * 120;
       const mountain = new THREE.Mesh(
         new THREE.ConeGeometry(
-          60 + Math.random() * 80,   // Large but reasonable
-          mountainHeight, // Tall but optimized
-          6  // Reduced geometry complexity
+          50 + Math.random() * 60,
+          mountainHeight,
+          6
         ),
         material
       );
 
       mountain.position.set(
         Math.cos(angle) * radius,
-        mountainHeight / 2,  // Position so base touches ground level (height/2)
+        mountainHeight / 2,
         Math.sin(angle) * radius
       );
 
       mountain.rotation.y = Math.random() * Math.PI;
-      mountain.castShadow = false; // Disable shadows for performance
+      mountain.castShadow = false;
       mountain.receiveShadow = false;
       this.scene.add(mountain);
       this.geometryObjects.push(mountain);
     }
 
-    // Add a few key massive backdrop peaks for drama
-    for (let i = 0; i < 6; i++) {
-      const angle = (i / 6) * Math.PI * 2 + Math.random() * 0.5;
-      const distance = 550 + Math.random() * 100;
+    // Middle mountain ring - main wall
+    const middleCount = 20;
+    const middleRadius = 450;
 
-      const peakHeight = 300 + Math.random() * 200;
-      const massivePeak = new THREE.Mesh(
+    for (let i = 0; i < middleCount; i++) {
+      const angle = (i / middleCount) * Math.PI * 2;
+      const radius = middleRadius + (Math.random() - 0.5) * 80;
+
+      const mountainHeight = 220 + Math.random() * 150;
+      const mountain = new THREE.Mesh(
         new THREE.ConeGeometry(
-          100 + Math.random() * 100,
-          peakHeight,
-          6  // Low poly for performance
+          70 + Math.random() * 80,
+          mountainHeight,
+          6
         ),
         material
       );
 
-      massivePeak.position.set(
-        Math.cos(angle) * distance,
-        peakHeight / 2,  // Position so base touches ground level (height/2)
-        Math.sin(angle) * distance
+      mountain.position.set(
+        Math.cos(angle) * radius,
+        mountainHeight / 2,
+        Math.sin(angle) * radius
       );
 
-      massivePeak.castShadow = false;
-      massivePeak.receiveShadow = false;
-      this.scene.add(massivePeak);
-      this.geometryObjects.push(massivePeak);
+      mountain.rotation.y = Math.random() * Math.PI;
+      mountain.castShadow = false;
+      mountain.receiveShadow = false;
+      this.scene.add(mountain);
+      this.geometryObjects.push(mountain);
+    }
+
+    // Outer mountain ring - backdrop wall
+    const outerCount = 16;
+    const outerRadius = 550;
+
+    for (let i = 0; i < outerCount; i++) {
+      const angle = (i / outerCount) * Math.PI * 2;
+      const radius = outerRadius + (Math.random() - 0.5) * 100;
+
+      const mountainHeight = 280 + Math.random() * 200;
+      const mountain = new THREE.Mesh(
+        new THREE.ConeGeometry(
+          90 + Math.random() * 100,
+          mountainHeight,
+          6
+        ),
+        material
+      );
+
+      mountain.position.set(
+        Math.cos(angle) * radius,
+        mountainHeight / 2,
+        Math.sin(angle) * radius
+      );
+
+      mountain.rotation.y = Math.random() * Math.PI;
+      mountain.castShadow = false;
+      mountain.receiveShadow = false;
+      this.scene.add(mountain);
+      this.geometryObjects.push(mountain);
+    }
+
+    // Fill gaps with extra mountains
+    const gapFillers = 30;
+    for (let i = 0; i < gapFillers; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 380 + Math.random() * 200; // Between inner and outer rings
+
+      const mountainHeight = 150 + Math.random() * 180;
+      const mountain = new THREE.Mesh(
+        new THREE.ConeGeometry(
+          40 + Math.random() * 70,
+          mountainHeight,
+          6
+        ),
+        material
+      );
+
+      mountain.position.set(
+        Math.cos(angle) * radius,
+        mountainHeight / 2,
+        Math.sin(angle) * radius
+      );
+
+      mountain.rotation.y = Math.random() * Math.PI;
+      mountain.castShadow = false;
+      mountain.receiveShadow = false;
+      this.scene.add(mountain);
+      this.geometryObjects.push(mountain);
     }
   }
 
