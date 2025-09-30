@@ -161,12 +161,14 @@ class Killer7Scene {
 
     // Animation toggle controls and camera switching
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' || e.key === 'q' || e.key === 'q') {
+      if (e.key === 'Escape' || e.key === 'q' || e.key === 'Q') {
         this.resetToOverview();
       } else if (e.key === 'p' || e.key === 'P') {
-        // Toggle play/pause for current track
-        if (this.currentTrack >= 0) {
-          this.toggleTrack(this.currentTrack);
+        // Toggle play/pause for currently selected track
+        const activeTrack = document.querySelector('.track-name.active');
+        if (activeTrack) {
+          const trackIndex = parseInt((activeTrack as HTMLElement).dataset.diamond || '0');
+          this.toggleTrack(trackIndex);
         }
       } else if (e.key >= '1' && e.key <= '7') {
         // Number keys for track selection - toggle if already selected
@@ -182,13 +184,48 @@ class Killer7Scene {
           this.focusOnDiamond(trackIndex);
           this.updateTrackNameUI(trackIndex);
         }
-      } else if ('qwertyuQWERTYU'.includes(e.key)) {
-        // QWERTYU keys for playing tracks
-        const playKeys = 'qwertyu';
-        const trackIndex = playKeys.indexOf(e.key.toLowerCase());
-        if (trackIndex !== -1) {
-          this.toggleTrack(trackIndex);
-        }
+      } else if (e.key === 'e' || e.key === 'E') {
+        // Move camera up (strafe vertically)
+        this.camera.position.y += 5;
+        this.controls.target.y += 5;
+        this.controls.update();
+      } else if (e.key === 'a' || e.key === 'A') {
+        // Move camera left (strafe)
+        const direction = new THREE.Vector3();
+        this.camera.getWorldDirection(direction);
+        const right = new THREE.Vector3();
+        right.crossVectors(this.camera.up, direction).normalize();
+        this.camera.position.addScaledVector(right, 5);
+        this.controls.target.addScaledVector(right, 5);
+        this.controls.update();
+      } else if (e.key === 'f' || e.key === 'F') {
+        // Move camera down (strafe vertically)
+        this.camera.position.y -= 5;
+        this.controls.target.y -= 5;
+        this.controls.update();
+      } else if (e.key === 'd' || e.key === 'D') {
+        // Move camera right (strafe)
+        const direction = new THREE.Vector3();
+        this.camera.getWorldDirection(direction);
+        const right = new THREE.Vector3();
+        right.crossVectors(this.camera.up, direction).normalize();
+        this.camera.position.addScaledVector(right, -5);
+        this.controls.target.addScaledVector(right, -5);
+        this.controls.update();
+      } else if (e.key === 'w' || e.key === 'W') {
+        // Move camera forward
+        const direction = new THREE.Vector3();
+        this.camera.getWorldDirection(direction);
+        this.camera.position.addScaledVector(direction, 5);
+        this.controls.target.addScaledVector(direction, 5);
+        this.controls.update();
+      } else if (e.key === 's' || e.key === 'S') {
+        // Move camera backward
+        const direction = new THREE.Vector3();
+        this.camera.getWorldDirection(direction);
+        this.camera.position.addScaledVector(direction, -5);
+        this.controls.target.addScaledVector(direction, -5);
+        this.controls.update();
       }
     });
 
