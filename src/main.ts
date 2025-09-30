@@ -1044,10 +1044,7 @@ class Killer7Scene {
 
   private createFloatingObjects(): void {
     const material = this.createBinaryToonMaterial();
-    const debrisMaterial = new THREE.MeshBasicMaterial({
-      color: 0x000000,
-      side: THREE.DoubleSide
-    });
+    const debrisMaterial = this.createBinaryToonMaterial();
 
     // Ring 1: Outer ring of cubes (radius 25, high altitude)
     const cubeCount = 8;
@@ -1561,17 +1558,48 @@ class Killer7Scene {
     });
   }
 
-  private createDiamondMaterial(): THREE.MeshBasicMaterial {
-    return new THREE.MeshBasicMaterial({
-      color: 0x000000,  // Pure black, always visible
-      side: THREE.DoubleSide  // Render both sides
-    });
+  private createDiamondMaterial(): THREE.ShaderMaterial {
+    return this.createInvertedToonMaterial();
   }
 
-  private createDebrisMaterial(): THREE.MeshBasicMaterial {
-    return new THREE.MeshBasicMaterial({
-      color: 0x000000,  // Pure black like the diamonds
-      side: THREE.DoubleSide
+  private createDebrisMaterial(): THREE.ShaderMaterial {
+    return this.createInvertedToonMaterial();
+  }
+
+  private createInvertedToonMaterial(): THREE.ShaderMaterial {
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        lightDirection: { value: new THREE.Vector3(5, 10, 5).normalize() }
+      },
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 lightDirection;
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+
+        void main() {
+          vec3 normal = normalize(vNormal);
+          float NdotL = max(dot(normal, lightDirection), 0.0);
+
+          // Mostly black with subtle white edge highlights
+          float edgeIntensity = 1.0 - abs(dot(normal, normalize(vPosition)));
+          float edge = pow(edgeIntensity, 3.0); // Sharp edge falloff
+
+          // Mix black base with white edges
+          vec3 color = mix(vec3(0.05), vec3(0.95), edge * 0.6);
+
+          gl_FragColor = vec4(color, 1.0);
+        }
+      `
     });
   }
 
@@ -1612,7 +1640,9 @@ class Killer7Scene {
     geometry.setIndex(indices);
     geometry.computeVertexNormals();
 
-    return new THREE.Mesh(geometry, material);
+    const mesh = new THREE.Mesh(geometry, material);
+
+    return mesh;
   }
 
   private toggleAnimation(): void {
