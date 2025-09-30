@@ -955,21 +955,32 @@ class Killer7Scene {
 
   private createStars(): void {
     // Create small static stars in the black background
-    const starCount = 800;
+    const starCount = 1000;
     const starGeometry = new THREE.BufferGeometry();
     const starPositions = new Float32Array(starCount * 3);
 
     for (let i = 0; i < starCount; i++) {
       const i3 = i * 3;
 
-      // Random positions in a large sphere around the scene
       const radius = 1200 + Math.random() * 400; // Far away, beyond mountains
       const theta = Math.random() * Math.PI * 2;
-      const phi = Math.random() * Math.PI * 0.7; // Concentrated in upper hemisphere
 
-      starPositions[i3] = radius * Math.sin(phi) * Math.cos(theta);
-      starPositions[i3 + 1] = Math.abs(radius * Math.cos(phi)); // Keep above horizon
-      starPositions[i3 + 2] = radius * Math.sin(phi) * Math.sin(theta);
+      // Create belt of stars around mountains with some higher stars
+      let y;
+      if (i < starCount * 0.65) {
+        // 65% in belt around mountain height (200-500)
+        y = 200 + Math.random() * 300;
+        const horizontalRadius = Math.sqrt(radius * radius - y * y);
+        starPositions[i3] = horizontalRadius * Math.cos(theta);
+        starPositions[i3 + 1] = y;
+        starPositions[i3 + 2] = horizontalRadius * Math.sin(theta);
+      } else {
+        // 35% higher in sky
+        const phi = Math.random() * Math.PI * 0.5;
+        starPositions[i3] = radius * Math.sin(phi) * Math.cos(theta);
+        starPositions[i3 + 1] = radius * Math.cos(phi);
+        starPositions[i3 + 2] = radius * Math.sin(phi) * Math.sin(theta);
+      }
     }
 
     starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
