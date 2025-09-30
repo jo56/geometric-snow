@@ -28,11 +28,11 @@ class Killer7Scene {
     this.setupPostProcessing();
     this.animate();
 
-    // Start with fade-in and overview animation after short delay
+    // Start with fade-in and overview animation after delay
     setTimeout(() => {
       this.fadeInScene();
       this.setOverviewCamera();
-    }, 800);
+    }, 1200);
   }
 
   private init(): void {
@@ -196,62 +196,62 @@ class Killer7Scene {
   }
 
   private createHorizonMountains(material: THREE.ShaderMaterial): void {
-    // Create distant mountain ranges on horizon
-    const mountainRanges = 8;
-    const baseRadius = 350;
+    // Optimized mountain system - fewer mountains but strategic placement
 
-    for (let range = 0; range < mountainRanges; range++) {
-      const angle = (range / mountainRanges) * Math.PI * 2;
-      const rangeRadius = baseRadius + Math.random() * 100;
+    // Mountain wall ring - optimized for performance
+    const mountainCount = 16; // Reduced from 100+ mountains
+    const baseRadius = 400;
 
-      // Create mountain range with multiple peaks
-      const peaksInRange = 5 + Math.floor(Math.random() * 8);
+    for (let i = 0; i < mountainCount; i++) {
+      const angle = (i / mountainCount) * Math.PI * 2;
+      const radius = baseRadius + (Math.random() - 0.5) * 100;
 
-      for (let peak = 0; peak < peaksInRange; peak++) {
-        const peakAngle = angle + (peak - peaksInRange/2) * 0.3;
-        const peakRadius = rangeRadius + (Math.random() - 0.5) * 50;
+      const mountainHeight = 200 + Math.random() * 150;
+      const mountain = new THREE.Mesh(
+        new THREE.ConeGeometry(
+          60 + Math.random() * 80,   // Large but reasonable
+          mountainHeight, // Tall but optimized
+          6  // Reduced geometry complexity
+        ),
+        material
+      );
 
-        const mountain = new THREE.Mesh(
-          new THREE.ConeGeometry(
-            8 + Math.random() * 12,  // Base radius
-            20 + Math.random() * 40,  // Height
-            6 + Math.floor(Math.random() * 4) // Segments
-          ),
-          material
-        );
+      mountain.position.set(
+        Math.cos(angle) * radius,
+        mountainHeight / 2,  // Position so base touches ground level (height/2)
+        Math.sin(angle) * radius
+      );
 
-        mountain.position.set(
-          Math.cos(peakAngle) * peakRadius,
-          10 + Math.random() * 15,
-          Math.sin(peakAngle) * peakRadius
-        );
-
-        mountain.rotation.y = Math.random() * Math.PI;
-        mountain.castShadow = true;
-        mountain.receiveShadow = true;
-        this.scene.add(mountain);
-        this.geometryObjects.push(mountain);
-      }
+      mountain.rotation.y = Math.random() * Math.PI;
+      mountain.castShadow = false; // Disable shadows for performance
+      mountain.receiveShadow = false;
+      this.scene.add(mountain);
+      this.geometryObjects.push(mountain);
     }
 
-    // Add some massive backdrop peaks for drama
+    // Add a few key massive backdrop peaks for drama
     for (let i = 0; i < 6; i++) {
-      const angle = (i / 6) * Math.PI * 2;
-      const distance = 450 + Math.random() * 100;
+      const angle = (i / 6) * Math.PI * 2 + Math.random() * 0.5;
+      const distance = 550 + Math.random() * 100;
 
+      const peakHeight = 300 + Math.random() * 200;
       const massivePeak = new THREE.Mesh(
-        new THREE.ConeGeometry(25, 80 + Math.random() * 40, 8),
+        new THREE.ConeGeometry(
+          100 + Math.random() * 100,
+          peakHeight,
+          6  // Low poly for performance
+        ),
         material
       );
 
       massivePeak.position.set(
         Math.cos(angle) * distance,
-        40,
+        peakHeight / 2,  // Position so base touches ground level (height/2)
         Math.sin(angle) * distance
       );
 
-      massivePeak.castShadow = true;
-      massivePeak.receiveShadow = true;
+      massivePeak.castShadow = false;
+      massivePeak.receiveShadow = false;
       this.scene.add(massivePeak);
       this.geometryObjects.push(massivePeak);
     }
@@ -455,6 +455,7 @@ class Killer7Scene {
       }
     }
   }
+
 
   private createScene(): void {
     // Create binary toon material
