@@ -24,6 +24,12 @@ class Killer7Scene {
     this.createScene();
     this.setupPostProcessing();
     this.animate();
+
+    // Start with fade-in and overview animation after short delay
+    setTimeout(() => {
+      this.fadeInScene();
+      this.setOverviewCamera();
+    }, 800);
   }
 
   private init(): void {
@@ -33,7 +39,8 @@ class Killer7Scene {
 
     // Camera - updated for much larger terrain with better culling
     this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-    this.camera.position.set(8, 6, 8);
+    // Start with a different position for the animation to work
+    this.camera.position.set(20, 20, 20);
 
     // Renderer
     this.renderer = new THREE.WebGLRenderer({
@@ -46,7 +53,7 @@ class Killer7Scene {
 
     // Controls - updated for much larger terrain
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controls.target.set(0, 1, 0);
+    this.controls.target.set(0, 10, 0); // Start with lower target for animation
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
 
@@ -875,6 +882,13 @@ class Killer7Scene {
     };
 
     animate();
+  }
+
+  private fadeInScene(): void {
+    const appElement = document.getElementById('app');
+    if (appElement) {
+      appElement.classList.add('fade-in');
+    }
   }
 
   private animate = (): void => {
