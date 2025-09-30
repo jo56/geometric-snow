@@ -28,12 +28,15 @@ class Killer7Scene {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0xffffff);
 
-    // Camera - updated for much larger terrain
-    this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 500);
+    // Camera - updated for much larger terrain with better culling
+    this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
     this.camera.position.set(8, 6, 8);
 
     // Renderer
-    this.renderer = new THREE.WebGLRenderer({ antialias: false });
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: false,
+      logarithmicDepthBuffer: true  // Better depth precision for large scenes
+    });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.BasicShadowMap;
@@ -46,7 +49,7 @@ class Killer7Scene {
 
     // Allow much more zooming for the larger terrain
     this.controls.minDistance = 2;
-    this.controls.maxDistance = 300; // Increased from default to see full terrain
+    this.controls.maxDistance = 800; // Much larger to see full terrain and mountains
 
     // Allow full rotation
     this.controls.minPolarAngle = 0;
@@ -444,16 +447,16 @@ class Killer7Scene {
 
     // Lighting - harsh directional for stark shadows
     const light = new THREE.DirectionalLight(0xffffff, 2.0);
-    light.position.set(50, 100, 50); // Moved higher and further for larger terrain
+    light.position.set(200, 200, 200); // Much higher and further for massive terrain
     light.castShadow = true;
     light.shadow.mapSize.width = 2048;
     light.shadow.mapSize.height = 2048;
-    light.shadow.camera.near = 0.5;
-    light.shadow.camera.far = 200; // Increased for larger terrain
-    light.shadow.camera.left = -100; // Expanded shadow coverage
-    light.shadow.camera.right = 100;
-    light.shadow.camera.top = 100;
-    light.shadow.camera.bottom = -100;
+    light.shadow.camera.near = 1;
+    light.shadow.camera.far = 800; // Much larger for full terrain coverage
+    light.shadow.camera.left = -400; // Massive shadow coverage
+    light.shadow.camera.right = 400;
+    light.shadow.camera.top = 400;
+    light.shadow.camera.bottom = -400;
     this.scene.add(light);
 
     // NO ambient light for pure blacks
