@@ -802,43 +802,10 @@ class Killer7Scene {
     });
   }
 
-  private createDiamondMaterial(): THREE.ShaderMaterial {
-    return new THREE.ShaderMaterial({
-      uniforms: {
-        lightDirection: { value: new THREE.Vector3(0.5, 1.0, 0.5).normalize() }
-      },
-      vertexShader: `
-        varying vec3 vNormal;
-
-        void main() {
-          vNormal = normalize(normalMatrix * normal);
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform vec3 lightDirection;
-        varying vec3 vNormal;
-
-        void main() {
-          vec3 normal = normalize(vNormal);
-
-          // If normal is pointing up (top face), make it always dark
-          if (normal.y > 0.8) {
-            gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-            return;
-          }
-
-          float NdotL = max(dot(normal, lightDirection), 0.0);
-
-          // Binary step but with a darker white to maintain contrast
-          float shade = step(0.3, NdotL);
-
-          // Dark facets vs lighter facets for diamond definition
-          vec3 color = mix(vec3(0.0), vec3(1.0), shade);
-
-          gl_FragColor = vec4(color, 1.0);
-        }
-      `
+  private createDiamondMaterial(): THREE.MeshBasicMaterial {
+    return new THREE.MeshBasicMaterial({
+      color: 0x000000,  // Pure black, always visible
+      side: THREE.DoubleSide  // Render both sides
     });
   }
 
@@ -864,21 +831,15 @@ class Killer7Scene {
 
     // Define faces (triangles connecting bottom point to edge ring)
     const indices = [
-      // Bottom triangles
-      0, 1, 2,
-      0, 2, 3,
-      0, 3, 4,
-      0, 4, 5,
-      0, 5, 6,
-      0, 6, 7,
-      0, 7, 8,
-      0, 8, 1,
-
-      // Top face (flat polygon to close the diamond)
-      1, 3, 5,  // First triangle of octagon
-      1, 5, 7,  // Second triangle
-      7, 1, 3,  // Ensure proper winding
-      3, 7, 5   // Complete the octagon face
+      // Bottom triangles - reverse winding for proper normals
+      0, 2, 1,
+      0, 3, 2,
+      0, 4, 3,
+      0, 5, 4,
+      0, 6, 5,
+      0, 7, 6,
+      0, 8, 7,
+      0, 1, 8
     ];
 
     geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
