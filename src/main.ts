@@ -543,15 +543,16 @@ class Killer7Scene {
   private createFloatingObjects(): void {
     const material = this.createBinaryToonMaterial();
 
-    // Ring 1: Outer ring of cubes (radius 18)
+    // Ring 1: Outer ring of cubes (radius 25, high altitude)
     const cubeCount = 8;
-    const cubeRadius = 18;
+    const cubeRadius = 25;
+    const baseHeight = 35; // Much higher floating height
     for (let i = 0; i < cubeCount; i++) {
       const angle = (i / cubeCount) * Math.PI * 2;
-      const cube = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), material);
+      const cube = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), material);
       cube.position.set(
         Math.cos(angle) * cubeRadius,
-        5 + Math.sin(i * 0.5) * 2, // Varied heights in wave pattern
+        baseHeight + Math.sin(i * 0.5) * 4, // Higher with more variation
         Math.sin(angle) * cubeRadius
       );
       cube.castShadow = true;
@@ -561,15 +562,15 @@ class Killer7Scene {
       this.animatedObjects.push(cube);
     }
 
-    // Ring 2: Middle ring of spheres (radius 12)
+    // Ring 2: Middle ring of spheres (radius 18, high altitude)
     const sphereCount = 6;
-    const sphereRadius = 12;
+    const sphereRadius = 18;
     for (let i = 0; i < sphereCount; i++) {
       const angle = (i / sphereCount) * Math.PI * 2;
-      const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 6), material);
+      const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.8, 8, 6), material);
       sphere.position.set(
         Math.cos(angle) * sphereRadius,
-        4 + Math.cos(i * 0.8) * 1.5, // Different wave pattern
+        baseHeight - 2 + Math.cos(i * 0.8) * 3, // Slightly lower than cubes
         Math.sin(angle) * sphereRadius
       );
       sphere.castShadow = true;
@@ -579,15 +580,15 @@ class Killer7Scene {
       this.animatedObjects.push(sphere);
     }
 
-    // Ring 3: Inner ring of pyramids (radius 8)
+    // Ring 3: Inner ring of pyramids (radius 12, high altitude)
     const pyramidCount = 5;
-    const pyramidRadius = 8;
+    const pyramidRadius = 12;
     for (let i = 0; i < pyramidCount; i++) {
       const angle = (i / pyramidCount) * Math.PI * 2;
-      const pyramid = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.2, 4), material);
+      const pyramid = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.8, 4), material);
       pyramid.position.set(
         Math.cos(angle) * pyramidRadius,
-        3 + Math.sin(i * 1.2) * 1, // Subtle height variation
+        baseHeight - 5 + Math.sin(i * 1.2) * 2, // Lower than spheres
         Math.sin(angle) * pyramidRadius
       );
       pyramid.castShadow = true;
@@ -597,10 +598,45 @@ class Killer7Scene {
       this.animatedObjects.push(pyramid);
     }
 
+    // Additional scattered debris around the diamond
+    for (let i = 0; i < 15; i++) {
+      const debrisTypes = [
+        new THREE.BoxGeometry(0.5 + Math.random() * 0.8, 0.5 + Math.random() * 0.8, 0.5 + Math.random() * 0.8),
+        new THREE.TetrahedronGeometry(0.6 + Math.random() * 0.4),
+        new THREE.ConeGeometry(0.4 + Math.random() * 0.3, 0.8 + Math.random() * 0.6, 5),
+        new THREE.OctahedronGeometry(0.4 + Math.random() * 0.3)
+      ];
 
-    // Central focal point - single large object
-    const centerPiece = new THREE.Mesh(new THREE.OctahedronGeometry(1.5), material);
-    centerPiece.position.set(0, 7, 0);
+      const geometry = debrisTypes[Math.floor(Math.random() * debrisTypes.length)];
+      const debris = new THREE.Mesh(geometry, material);
+
+      // Random positions around the diamond at high altitude
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 6 + Math.random() * 20;
+      const height = baseHeight + 8 + (Math.random() - 0.5) * 12;
+
+      debris.position.set(
+        Math.cos(angle) * radius,
+        height,
+        Math.sin(angle) * radius
+      );
+
+      debris.rotation.set(
+        Math.random() * Math.PI,
+        Math.random() * Math.PI,
+        Math.random() * Math.PI
+      );
+
+      debris.castShadow = true;
+      debris.receiveShadow = true;
+      this.scene.add(debris);
+      this.geometryObjects.push(debris);
+      this.animatedObjects.push(debris);
+    }
+
+    // Central focal point - massive floating diamond
+    const centerPiece = new THREE.Mesh(new THREE.OctahedronGeometry(4), material); // Much larger
+    centerPiece.position.set(0, baseHeight + 8, 0); // High in the sky
     centerPiece.castShadow = true;
     centerPiece.receiveShadow = true;
     this.scene.add(centerPiece);
