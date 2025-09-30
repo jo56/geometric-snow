@@ -26,7 +26,7 @@ class Killer7Scene {
   private init(): void {
     // Scene
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x000000);
+    this.scene.background = new THREE.Color(0xffffff);
 
     // Camera
     this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
@@ -91,16 +91,84 @@ class Killer7Scene {
     this.composer.addPass(this.outlinePass);
   }
 
+  private createTerrain(material: THREE.ShaderMaterial): void {
+    // Create main large platform with varied heights
+    const terrainSize = 60;
+    const segments = 30;
+    const terrainGeometry = new THREE.PlaneGeometry(terrainSize, terrainSize, segments, segments);
+
+    // Add height variation to vertices
+    const positions = terrainGeometry.attributes.position.array as Float32Array;
+    for (let i = 0; i < positions.length; i += 3) {
+      const x = positions[i];
+      const z = positions[i + 2];
+      // Create varied terrain with noise-like patterns
+      positions[i + 1] = Math.sin(x * 0.1) * Math.cos(z * 0.1) * 2 +
+                         Math.sin(x * 0.05) * Math.sin(z * 0.08) * 1.5 +
+                         (Math.random() - 0.5) * 0.5;
+    }
+    terrainGeometry.computeVertexNormals();
+
+    const terrain = new THREE.Mesh(terrainGeometry, material);
+    terrain.rotation.x = -Math.PI / 2;
+    terrain.receiveShadow = true;
+    this.scene.add(terrain);
+    this.geometryObjects.push(terrain);
+
+    // Add scattered platform pieces at different levels
+    for (let i = 0; i < 15; i++) {
+      const platformSize = 3 + Math.random() * 4;
+      const platformHeight = 0.3 + Math.random() * 0.8;
+      const platform = new THREE.Mesh(
+        new THREE.BoxGeometry(platformSize, platformHeight, platformSize),
+        material
+      );
+
+      platform.position.set(
+        (Math.random() - 0.5) * 50,
+        platformHeight / 2 + Math.random() * 2,
+        (Math.random() - 0.5) * 50
+      );
+      platform.rotation.y = Math.random() * Math.PI;
+      platform.castShadow = true;
+      platform.receiveShadow = true;
+      this.scene.add(platform);
+      this.geometryObjects.push(platform);
+    }
+
+    // Create elevated areas with steps
+    for (let i = 0; i < 8; i++) {
+      const stepCount = 3 + Math.floor(Math.random() * 4);
+      const stepWidth = 2 + Math.random() * 2;
+
+      for (let j = 0; j < stepCount; j++) {
+        const step = new THREE.Mesh(
+          new THREE.BoxGeometry(stepWidth, 0.4, stepWidth * 0.8),
+          material
+        );
+
+        const baseX = (Math.random() - 0.5) * 40;
+        const baseZ = (Math.random() - 0.5) * 40;
+
+        step.position.set(
+          baseX,
+          0.2 + j * 0.4,
+          baseZ + j * (stepWidth * 0.6)
+        );
+        step.castShadow = true;
+        step.receiveShadow = true;
+        this.scene.add(step);
+        this.geometryObjects.push(step);
+      }
+    }
+  }
+
   private createScene(): void {
     // Create binary toon material
     const material = this.createBinaryToonMaterial();
 
-    // Floor
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), material);
-    floor.rotation.x = -Math.PI / 2;
-    floor.receiveShadow = true;
-    this.scene.add(floor);
-    this.geometryObjects.push(floor);
+    // Create larger, more varied terrain
+    this.createTerrain(material);
 
     // Cubes
     for (let i = 0; i < 3; i++) {
@@ -148,44 +216,88 @@ class Killer7Scene {
   private createBackground(): void {
     const material = this.createBinaryToonMaterial();
 
-    // Create wall panels in the background
-    for (let i = 0; i < 5; i++) {
-      const wall = new THREE.Mesh(new THREE.BoxGeometry(3, 6, 0.2), material);
-      wall.position.set(-12 + i * 6, 3, -8);
+    // Create patterned background walls arranged in a circle around the scene
+    const wallCount = 12;
+    const radius = 80;
+
+    for (let i = 0; i < wallCount; i++) {
+      const angle = (i / wallCount) * Math.PI * 2;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+
+      // Large backdrop walls with patterns
+      const wall = new THREE.Mesh(new THREE.BoxGeometry(15, 25, 2), material);
+      wall.position.set(x, 12, z);
+      wall.lookAt(0, 12, 0); // Face inward toward the scene
       wall.castShadow = true;
-      wall.receiveShadow = true;
       this.scene.add(wall);
       this.geometryObjects.push(wall);
+
+      // Add pattern elements to walls
+      if (i % 2 === 0) {
+        // Vertical stripes
+        for (let j = 0; j < 3; j++) {
+          const stripe = new THREE.Mesh(new THREE.BoxGeometry(1, 20, 0.5), material);
+          stripe.position.set(x * 0.98, 12, z * 0.98);
+          stripe.position.x += Math.cos(angle + Math.PI/2) * (j - 1) * 4;
+          stripe.position.z += Math.sin(angle + Math.PI/2) * (j - 1) * 4;
+          stripe.lookAt(0, 12, 0);
+          stripe.castShadow = true;
+          this.scene.add(stripe);
+          this.geometryObjects.push(stripe);
+        }
+      } else {
+        // Cross patterns
+        const cross1 = new THREE.Mesh(new THREE.BoxGeometry(8, 1, 0.5), material);
+        const cross2 = new THREE.Mesh(new THREE.BoxGeometry(1, 8, 0.5), material);
+
+        cross1.position.set(x * 0.98, 12, z * 0.98);
+        cross2.position.set(x * 0.98, 12, z * 0.98);
+
+        cross1.lookAt(0, 12, 0);
+        cross2.lookAt(0, 12, 0);
+
+        cross1.castShadow = true;
+        cross2.castShadow = true;
+
+        this.scene.add(cross1);
+        this.scene.add(cross2);
+        this.geometryObjects.push(cross1);
+        this.geometryObjects.push(cross2);
+      }
     }
 
-    // Create some backdrop pillars
-    for (let i = 0; i < 3; i++) {
-      const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.8, 8, 0.8), material);
-      pillar.position.set(-8 + i * 8, 4, -12);
-      pillar.castShadow = true;
-      pillar.receiveShadow = true;
-      this.scene.add(pillar);
-      this.geometryObjects.push(pillar);
-    }
+    // Add floating geometric shapes in the background
+    for (let i = 0; i < 20; i++) {
+      const shapes = [
+        new THREE.BoxGeometry(2, 2, 2),
+        new THREE.SphereGeometry(1, 8, 6),
+        new THREE.ConeGeometry(1, 2, 6),
+        new THREE.TorusGeometry(1, 0.3, 6, 12)
+      ];
 
-    // Create stepped platforms at different levels
-    for (let i = 0; i < 4; i++) {
-      const platform = new THREE.Mesh(new THREE.BoxGeometry(4, 0.5, 2), material);
-      platform.position.set(-6 + i * 4, 0.25 + i * 0.5, -5);
-      platform.castShadow = true;
-      platform.receiveShadow = true;
-      this.scene.add(platform);
-      this.geometryObjects.push(platform);
-    }
+      const geometry = shapes[Math.floor(Math.random() * shapes.length)];
+      const shape = new THREE.Mesh(geometry, material);
 
-    // Add some geometric backdrop elements
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(2, 0.3, 8, 16), material);
-    ring.position.set(0, 4, -10);
-    ring.rotation.x = Math.PI / 4;
-    ring.castShadow = true;
-    ring.receiveShadow = true;
-    this.scene.add(ring);
-    this.geometryObjects.push(ring);
+      const angle = Math.random() * Math.PI * 2;
+      const distance = 50 + Math.random() * 20;
+
+      shape.position.set(
+        Math.cos(angle) * distance,
+        5 + Math.random() * 15,
+        Math.sin(angle) * distance
+      );
+
+      shape.rotation.set(
+        Math.random() * Math.PI,
+        Math.random() * Math.PI,
+        Math.random() * Math.PI
+      );
+
+      shape.castShadow = true;
+      this.scene.add(shape);
+      this.geometryObjects.push(shape);
+    }
   }
 
   private createFloatingObjects(): void {
