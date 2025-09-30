@@ -1024,9 +1024,9 @@ class Killer7Scene {
           vec3 normal = normalize(vNormal);
           float NdotL = max(dot(normal, lightDirection), 0.0);
 
-          // Inverted toon: white base with dark shadows
+          // Inverted toon: subtle off-white with gray shadows
           float shade = step(0.5, NdotL);
-          vec3 color = mix(vec3(0.4), vec3(0.95), shade);  // Dark shadows to bright white
+          vec3 color = mix(vec3(0.5), vec3(0.92), shade);  // Gray shadows to subtle off-white
 
           gl_FragColor = vec4(color, 1.0);
         }
