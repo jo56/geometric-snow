@@ -652,7 +652,8 @@ class Killer7Scene {
     }
 
     // Central focal point - massive floating diamond
-    const centerPiece = new THREE.Mesh(new THREE.OctahedronGeometry(4), material); // Much larger
+    const diamondMaterial = this.createDiamondMaterial();
+    const centerPiece = this.createHalfDiamond(4, diamondMaterial); // Much larger
     centerPiece.position.set(0, baseHeight + 8, 0); // High in the sky
     centerPiece.castShadow = true;
     centerPiece.receiveShadow = true;
@@ -678,9 +679,9 @@ class Killer7Scene {
     ];
 
     diamondPositions.forEach((pos, index) => {
-      // Create smaller diamond (varied sizes)
+      // Create smaller diamond (varied sizes) with consistent black material
       const diamondSize = 2.5 + Math.random() * 1.5; // 2.5-4 units
-      const diamond = new THREE.Mesh(new THREE.OctahedronGeometry(diamondSize), material);
+      const diamond = this.createHalfDiamond(diamondSize, this.createDiamondMaterial());
       diamond.position.set(pos.x, pos.height, pos.z);
       diamond.castShadow = true;
       diamond.receiveShadow = true;
@@ -799,6 +800,92 @@ class Killer7Scene {
         }
       `
     });
+  }
+
+  private createDiamondMaterial(): THREE.ShaderMaterial {
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        lightDirection: { value: new THREE.Vector3(0.5, 1.0, 0.5).normalize() }
+      },
+      vertexShader: `
+        varying vec3 vNormal;
+
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 lightDirection;
+        varying vec3 vNormal;
+
+        void main() {
+          vec3 normal = normalize(vNormal);
+
+          // If normal is pointing up (top face), make it always dark
+          if (normal.y > 0.8) {
+            gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+            return;
+          }
+
+          float NdotL = max(dot(normal, lightDirection), 0.0);
+
+          // Binary step but with a darker white to maintain contrast
+          float shade = step(0.3, NdotL);
+
+          // Dark facets vs lighter facets for diamond definition
+          vec3 color = mix(vec3(0.0), vec3(1.0), shade);
+
+          gl_FragColor = vec4(color, 1.0);
+        }
+      `
+    });
+  }
+
+  private createHalfDiamond(size: number, material: THREE.Material): THREE.Mesh {
+    // Create bottom half of diamond manually
+    const geometry = new THREE.BufferGeometry();
+
+    // Define vertices for bottom half of octahedron
+    const vertices = new Float32Array([
+      // Bottom point
+      0, -size, 0,
+
+      // Middle ring (8 points around the equator)
+      size, 0, 0,
+      size * 0.707, 0, size * 0.707,
+      0, 0, size,
+      -size * 0.707, 0, size * 0.707,
+      -size, 0, 0,
+      -size * 0.707, 0, -size * 0.707,
+      0, 0, -size,
+      size * 0.707, 0, -size * 0.707
+    ]);
+
+    // Define faces (triangles connecting bottom point to edge ring)
+    const indices = [
+      // Bottom triangles
+      0, 1, 2,
+      0, 2, 3,
+      0, 3, 4,
+      0, 4, 5,
+      0, 5, 6,
+      0, 6, 7,
+      0, 7, 8,
+      0, 8, 1,
+
+      // Top face (flat polygon to close the diamond)
+      1, 3, 5,  // First triangle of octagon
+      1, 5, 7,  // Second triangle
+      7, 1, 3,  // Ensure proper winding
+      3, 7, 5   // Complete the octagon face
+    ];
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+
+    return new THREE.Mesh(geometry, material);
   }
 
   private toggleAnimation(): void {
