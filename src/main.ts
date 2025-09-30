@@ -92,9 +92,9 @@ class Killer7Scene {
   }
 
   private createTerrain(material: THREE.ShaderMaterial): void {
-    // Create main large platform with varied heights
-    const terrainSize = 60;
-    const segments = 30;
+    // Create main large platform with varied heights - VASTLY EXPANDED
+    const terrainSize = 200; // Increased from 60 to 200
+    const segments = 80; // Increased segments for more detail
     const terrainGeometry = new THREE.PlaneGeometry(terrainSize, terrainSize, segments, segments);
 
     // Add height variation to vertices
@@ -103,9 +103,10 @@ class Killer7Scene {
       const x = positions[i];
       const z = positions[i + 2];
       // Create varied terrain with noise-like patterns
-      positions[i + 1] = Math.sin(x * 0.1) * Math.cos(z * 0.1) * 2 +
-                         Math.sin(x * 0.05) * Math.sin(z * 0.08) * 1.5 +
-                         (Math.random() - 0.5) * 0.5;
+      positions[i + 1] = Math.sin(x * 0.03) * Math.cos(z * 0.03) * 3 +
+                         Math.sin(x * 0.015) * Math.sin(z * 0.02) * 2.5 +
+                         Math.sin(x * 0.08) * Math.cos(z * 0.07) * 1 +
+                         (Math.random() - 0.5) * 0.8;
     }
     terrainGeometry.computeVertexNormals();
 
@@ -115,19 +116,19 @@ class Killer7Scene {
     this.scene.add(terrain);
     this.geometryObjects.push(terrain);
 
-    // Add scattered platform pieces at different levels
-    for (let i = 0; i < 15; i++) {
-      const platformSize = 3 + Math.random() * 4;
-      const platformHeight = 0.3 + Math.random() * 0.8;
+    // Add scattered platform pieces at different levels - spread across larger area
+    for (let i = 0; i < 40; i++) { // Increased from 15 to 40
+      const platformSize = 3 + Math.random() * 6;
+      const platformHeight = 0.3 + Math.random() * 1.2;
       const platform = new THREE.Mesh(
         new THREE.BoxGeometry(platformSize, platformHeight, platformSize),
         material
       );
 
       platform.position.set(
-        (Math.random() - 0.5) * 50,
-        platformHeight / 2 + Math.random() * 2,
-        (Math.random() - 0.5) * 50
+        (Math.random() - 0.5) * 180, // Increased spread from 50 to 180
+        platformHeight / 2 + Math.random() * 3,
+        (Math.random() - 0.5) * 180  // Increased spread from 50 to 180
       );
       platform.rotation.y = Math.random() * Math.PI;
       platform.castShadow = true;
@@ -136,10 +137,10 @@ class Killer7Scene {
       this.geometryObjects.push(platform);
     }
 
-    // Create elevated areas with steps
-    for (let i = 0; i < 8; i++) {
-      const stepCount = 3 + Math.floor(Math.random() * 4);
-      const stepWidth = 2 + Math.random() * 2;
+    // Create elevated areas with steps - more scattered across larger space
+    for (let i = 0; i < 20; i++) { // Increased from 8 to 20
+      const stepCount = 3 + Math.floor(Math.random() * 5);
+      const stepWidth = 2 + Math.random() * 3;
 
       for (let j = 0; j < stepCount; j++) {
         const step = new THREE.Mesh(
@@ -147,8 +148,8 @@ class Killer7Scene {
           material
         );
 
-        const baseX = (Math.random() - 0.5) * 40;
-        const baseZ = (Math.random() - 0.5) * 40;
+        const baseX = (Math.random() - 0.5) * 160; // Increased from 40 to 160
+        const baseZ = (Math.random() - 0.5) * 160; // Increased from 40 to 160
 
         step.position.set(
           baseX,
@@ -160,6 +161,31 @@ class Killer7Scene {
         this.scene.add(step);
         this.geometryObjects.push(step);
       }
+    }
+
+    // Add some larger landmark structures across the expanded terrain
+    for (let i = 0; i < 12; i++) {
+      const landmarkTypes = [
+        new THREE.BoxGeometry(8, 6, 8),          // Large blocks
+        new THREE.CylinderGeometry(3, 3, 8, 8),  // Towers
+        new THREE.ConeGeometry(4, 10, 6),        // Spires
+        new THREE.TorusGeometry(4, 1, 8, 16)     // Large rings
+      ];
+
+      const geometry = landmarkTypes[Math.floor(Math.random() * landmarkTypes.length)];
+      const landmark = new THREE.Mesh(geometry, material);
+
+      landmark.position.set(
+        (Math.random() - 0.5) * 170, // Spread across the terrain
+        3 + Math.random() * 4,
+        (Math.random() - 0.5) * 170
+      );
+
+      landmark.rotation.y = Math.random() * Math.PI;
+      landmark.castShadow = true;
+      landmark.receiveShadow = true;
+      this.scene.add(landmark);
+      this.geometryObjects.push(landmark);
     }
   }
 
