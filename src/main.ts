@@ -497,6 +497,9 @@ class Killer7Scene {
 
     // Add vertical stacks of rectangles for dramatic verticality
     this.createVerticalStacks(material);
+
+    // Add ground panels to break up empty white spaces
+    this.createGroundPanels(material);
   }
 
   private createVerticalStacks(material: THREE.ShaderMaterial): void {
@@ -618,6 +621,111 @@ class Killer7Scene {
         this.scene.add(pyramidLevel);
         this.geometryObjects.push(pyramidLevel);
       }
+    }
+  }
+
+  private createGroundPanels(material: THREE.ShaderMaterial): void {
+    // Create angular ground structures - more architectural and less flat
+
+    // 1. Angular ground structures - tilted rectangular blocks
+    for (let i = 0; i < 60; i++) {
+      const structureWidth = 15 + Math.random() * 25;
+      const structureDepth = 12 + Math.random() * 20;
+      const structureHeight = 2 + Math.random() * 4; // Much taller for angular look
+
+      const structure = new THREE.Mesh(
+        new THREE.BoxGeometry(structureWidth, structureHeight, structureDepth),
+        material
+      );
+
+      structure.position.set(
+        (Math.random() - 0.5) * 1300,
+        structureHeight / 2,
+        (Math.random() - 0.5) * 1300
+      );
+
+      // Add dramatic angular rotations
+      structure.rotation.set(
+        (Math.random() - 0.5) * 0.6, // Tilt forward/back
+        Math.random() * Math.PI,     // Rotate around Y
+        (Math.random() - 0.5) * 0.4  // Tilt left/right
+      );
+
+      structure.castShadow = true;
+      structure.receiveShadow = true;
+      this.scene.add(structure);
+      this.geometryObjects.push(structure);
+    }
+
+    // 2. Elevated angular platforms - dramatic geometric shapes
+    for (let i = 0; i < 45; i++) {
+      const platformTypes = [
+        new THREE.BoxGeometry(
+          8 + Math.random() * 15,
+          1.5 + Math.random() * 3,
+          6 + Math.random() * 12
+        ),
+        new THREE.CylinderGeometry(
+          6 + Math.random() * 8,
+          4 + Math.random() * 6,
+          2 + Math.random() * 4,
+          8
+        ),
+        new THREE.ConeGeometry(
+          8 + Math.random() * 6,
+          3 + Math.random() * 3,
+          6
+        )
+      ];
+
+      const geometry = platformTypes[Math.floor(Math.random() * platformTypes.length)];
+      const platform = new THREE.Mesh(geometry, material);
+
+      platform.position.set(
+        (Math.random() - 0.5) * 1300,
+        1 + Math.random() * 2,
+        (Math.random() - 0.5) * 1300
+      );
+
+      platform.rotation.set(
+        (Math.random() - 0.5) * 0.5,
+        Math.random() * Math.PI,
+        (Math.random() - 0.5) * 0.3
+      );
+
+      platform.castShadow = true;
+      platform.receiveShadow = true;
+      this.scene.add(platform);
+      this.geometryObjects.push(platform);
+    }
+
+    // 3. Geometric ground fragments - varied angular pieces
+    for (let i = 0; i < 35; i++) {
+      const fragmentTypes = [
+        new THREE.BoxGeometry(5 + Math.random() * 8, 0.8 + Math.random() * 1.5, 5 + Math.random() * 8),
+        new THREE.TetrahedronGeometry(4 + Math.random() * 4),
+        new THREE.OctahedronGeometry(3 + Math.random() * 3)
+      ];
+
+      const geometry = fragmentTypes[Math.floor(Math.random() * fragmentTypes.length)];
+      const fragment = new THREE.Mesh(geometry, material);
+
+      fragment.position.set(
+        (Math.random() - 0.5) * 1300,
+        0.5 + Math.random() * 1,
+        (Math.random() - 0.5) * 1300
+      );
+
+      fragment.rotation.set(
+        Math.random() * Math.PI,
+        Math.random() * Math.PI,
+        Math.random() * Math.PI
+      );
+
+      fragment.castShadow = true;
+      fragment.receiveShadow = true;
+      this.scene.add(fragment);
+      this.geometryObjects.push(fragment);
     }
   }
 
@@ -841,8 +949,156 @@ class Killer7Scene {
     this.animatedObjects.push(centerPiece);
     this.diamonds.push(centerPiece);
 
+    // Add structures underneath the central diamond
+    this.createCenterStructures(material, debrisMaterial);
+
     // Additional floating diamonds with their own debris fields
     this.createAdditionalDiamonds(material, debrisMaterial, baseHeight);
+  }
+
+  private createCenterStructures(material: THREE.ShaderMaterial, debrisMaterial: THREE.MeshBasicMaterial): void {
+    // Create architectural structures underneath the central diamond
+
+    // 1. Central pedestal platform
+    const pedestal = new THREE.Mesh(
+      new THREE.CylinderGeometry(8, 12, 6, 8),
+      material
+    );
+    pedestal.position.set(0, 3, 0);
+    pedestal.castShadow = true;
+    pedestal.receiveShadow = true;
+    this.scene.add(pedestal);
+    this.geometryObjects.push(pedestal);
+
+    // 2. Surrounding angular support structures
+    const supportCount = 6;
+    for (let i = 0; i < supportCount; i++) {
+      const angle = (i / supportCount) * Math.PI * 2;
+      const radius = 15 + Math.random() * 5;
+
+      const supportTypes = [
+        new THREE.BoxGeometry(3 + Math.random() * 2, 8 + Math.random() * 6, 3 + Math.random() * 2),
+        new THREE.ConeGeometry(2 + Math.random() * 1.5, 10 + Math.random() * 5, 6),
+        new THREE.CylinderGeometry(1.5, 3, 12 + Math.random() * 4, 8)
+      ];
+
+      const geometry = supportTypes[Math.floor(Math.random() * supportTypes.length)];
+      const support = new THREE.Mesh(geometry, material);
+
+      support.position.set(
+        Math.cos(angle) * radius,
+        5 + Math.random() * 3,
+        Math.sin(angle) * radius
+      );
+
+      support.rotation.set(
+        (Math.random() - 0.5) * 0.3,
+        angle + (Math.random() - 0.5) * 0.5,
+        (Math.random() - 0.5) * 0.2
+      );
+
+      support.castShadow = true;
+      support.receiveShadow = true;
+      this.scene.add(support);
+      this.geometryObjects.push(support);
+    }
+
+    // 3. Ground-level angular structures radiating from center
+    const groundStructureCount = 12;
+    for (let i = 0; i < groundStructureCount; i++) {
+      const angle = (i / groundStructureCount) * Math.PI * 2;
+      const radius = 8 + Math.random() * 12;
+
+      const structure = new THREE.Mesh(
+        new THREE.BoxGeometry(
+          2 + Math.random() * 3,
+          1 + Math.random() * 2,
+          6 + Math.random() * 4
+        ),
+        material
+      );
+
+      structure.position.set(
+        Math.cos(angle) * radius,
+        0.5 + Math.random() * 0.5,
+        Math.sin(angle) * radius
+      );
+
+      structure.rotation.set(
+        (Math.random() - 0.5) * 0.4,
+        angle + (Math.random() - 0.5) * 0.3,
+        (Math.random() - 0.5) * 0.2
+      );
+
+      structure.castShadow = true;
+      structure.receiveShadow = true;
+      this.scene.add(structure);
+      this.geometryObjects.push(structure);
+    }
+
+    // 4. Elevated black debris platforms around center
+    const platformCount = 8;
+    for (let i = 0; i < platformCount; i++) {
+      const angle = (i / platformCount) * Math.PI * 2 + Math.random() * 0.5;
+      const radius = 20 + Math.random() * 10;
+
+      const platform = new THREE.Mesh(
+        new THREE.BoxGeometry(
+          4 + Math.random() * 3,
+          0.3 + Math.random() * 0.4,
+          4 + Math.random() * 3
+        ),
+        debrisMaterial
+      );
+
+      platform.position.set(
+        Math.cos(angle) * radius,
+        2 + Math.random() * 3,
+        Math.sin(angle) * radius
+      );
+
+      platform.rotation.set(
+        (Math.random() - 0.5) * 0.3,
+        Math.random() * Math.PI,
+        (Math.random() - 0.5) * 0.2
+      );
+
+      platform.castShadow = true;
+      platform.receiveShadow = true;
+      this.scene.add(platform);
+      this.geometryObjects.push(platform);
+    }
+
+    // 5. Connecting bridge elements
+    const bridgeCount = 4;
+    for (let i = 0; i < bridgeCount; i++) {
+      const angle = (i / bridgeCount) * Math.PI * 2;
+      const startRadius = 12;
+      const endRadius = 25;
+
+      const bridge = new THREE.Mesh(
+        new THREE.BoxGeometry(
+          endRadius - startRadius,
+          0.5,
+          1.5 + Math.random() * 1
+        ),
+        material
+      );
+
+      const midRadius = (startRadius + endRadius) / 2;
+      bridge.position.set(
+        Math.cos(angle) * midRadius,
+        2.5 + Math.random() * 1,
+        Math.sin(angle) * midRadius
+      );
+
+      bridge.rotation.y = angle;
+
+      bridge.castShadow = true;
+      bridge.receiveShadow = true;
+      this.scene.add(bridge);
+      this.geometryObjects.push(bridge);
+    }
   }
 
   private createAdditionalDiamonds(material: THREE.ShaderMaterial, debrisMaterial: THREE.MeshBasicMaterial, baseHeight: number): void {
