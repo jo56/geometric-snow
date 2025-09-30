@@ -186,8 +186,8 @@ class Killer7Scene {
         }
       } else if (e.key === 'e' || e.key === 'E') {
         // Move camera up (strafe vertically)
-        this.camera.position.y += 2;
-        this.controls.target.y += 2;
+        this.camera.position.y += 1;
+        this.controls.target.y += 1;
         this.controls.update();
       } else if (e.key === 'a' || e.key === 'A') {
         // Move camera left (strafe)
@@ -195,13 +195,13 @@ class Killer7Scene {
         this.camera.getWorldDirection(direction);
         const right = new THREE.Vector3();
         right.crossVectors(this.camera.up, direction).normalize();
-        this.camera.position.addScaledVector(right, 2);
-        this.controls.target.addScaledVector(right, 2);
+        this.camera.position.addScaledVector(right, 1);
+        this.controls.target.addScaledVector(right, 1);
         this.controls.update();
       } else if (e.key === 'f' || e.key === 'F') {
         // Move camera down (strafe vertically)
-        this.camera.position.y -= 2;
-        this.controls.target.y -= 2;
+        this.camera.position.y -= 1;
+        this.controls.target.y -= 1;
         this.controls.update();
       } else if (e.key === 'd' || e.key === 'D') {
         // Move camera right (strafe)
@@ -209,22 +209,22 @@ class Killer7Scene {
         this.camera.getWorldDirection(direction);
         const right = new THREE.Vector3();
         right.crossVectors(this.camera.up, direction).normalize();
-        this.camera.position.addScaledVector(right, -2);
-        this.controls.target.addScaledVector(right, -2);
+        this.camera.position.addScaledVector(right, -1);
+        this.controls.target.addScaledVector(right, -1);
         this.controls.update();
       } else if (e.key === 'w' || e.key === 'W') {
         // Move camera forward
         const direction = new THREE.Vector3();
         this.camera.getWorldDirection(direction);
-        this.camera.position.addScaledVector(direction, 2);
-        this.controls.target.addScaledVector(direction, 2);
+        this.camera.position.addScaledVector(direction, 1);
+        this.controls.target.addScaledVector(direction, 1);
         this.controls.update();
       } else if (e.key === 's' || e.key === 'S') {
         // Move camera backward
         const direction = new THREE.Vector3();
         this.camera.getWorldDirection(direction);
-        this.camera.position.addScaledVector(direction, -2);
-        this.controls.target.addScaledVector(direction, -2);
+        this.camera.position.addScaledVector(direction, -1);
+        this.controls.target.addScaledVector(direction, -1);
         this.controls.update();
       }
     });
