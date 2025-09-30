@@ -35,7 +35,7 @@ class Killer7Scene {
   private init(): void {
     // Scene
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0xffffff);
+    this.scene.background = new THREE.Color(0xf8f8f8); // Very light gray background
 
     // Camera - updated for much larger terrain with better culling
     this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -793,10 +793,11 @@ class Killer7Scene {
           vec3 normal = normalize(vNormal);
           float NdotL = max(dot(normal, lightDirection), 0.0);
 
-          // Binary step - no grays!
+          // Binary step - but with grayer tones for both dark and light
           float shade = step(0.5, NdotL);
+          vec3 color = mix(vec3(0.2), vec3(0.85), shade);  // Dark gray to light gray
 
-          gl_FragColor = vec4(vec3(shade), 1.0);
+          gl_FragColor = vec4(color, 1.0);
         }
       `
     });
