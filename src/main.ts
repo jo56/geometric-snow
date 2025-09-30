@@ -106,47 +106,56 @@ class Killer7Scene {
   }
 
   private createTerrain(material: THREE.ShaderMaterial): void {
-    // Create massive mountainous terrain expanding to horizon
-    const terrainSize = 800; // Massive increase to reach horizon
-    const segments = 120; // More detail for mountains
+    // Create massive mountain valley terrain
+    const terrainSize = 800; // Massive terrain to reach mountain ring
+    const segments = 120; // High detail for varied terrain
     const terrainGeometry = new THREE.PlaneGeometry(terrainSize, terrainSize, segments, segments);
 
-    // Add mountainous height variation
+    // Add mountainous valley terrain with irregular features throughout
     const positions = terrainGeometry.attributes.position.array as Float32Array;
     for (let i = 0; i < positions.length; i += 3) {
       const x = positions[i];
       const z = positions[i + 2];
 
-      // Distance from center for mountainous effect
+      // Distance from center for valley effect
       const distanceFromCenter = Math.sqrt(x * x + z * z);
-      const mountainHeight = Math.max(0, 1 - distanceFromCenter / 300); // Gradual falloff
 
-      // Multiple layers of terrain generation
-      let height = 0;
+      // Create valley bowl effect - higher at edges, lower in center
+      const valleyDepth = Math.min(distanceFromCenter / 350, 1); // Gradual rise to mountain ring
+      const valleyHeight = valleyDepth * valleyDepth * 8; // Quadratic rise to edges
 
-      // Base mountainous terrain - large scale features
-      height += Math.sin(x * 0.008) * Math.cos(z * 0.008) * 15 * mountainHeight;
-      height += Math.sin(x * 0.005) * Math.sin(z * 0.006) * 20 * mountainHeight;
+      // Multiple layers of terrain generation across entire valley
+      let height = valleyHeight;
 
-      // Medium scale hills and valleys
-      height += Math.sin(x * 0.02) * Math.cos(z * 0.025) * 8 * mountainHeight;
-      height += Math.cos(x * 0.015) * Math.sin(z * 0.018) * 6 * mountainHeight;
+      // Large scale valley features - rolling hills throughout
+      height += Math.sin(x * 0.012) * Math.cos(z * 0.012) * 8;
+      height += Math.sin(x * 0.008) * Math.sin(z * 0.009) * 12;
+      height += Math.cos(x * 0.006) * Math.cos(z * 0.007) * 6;
 
-      // Small scale detail
+      // Medium scale terrain variety - ridges and valleys
+      height += Math.sin(x * 0.025) * Math.cos(z * 0.028) * 4;
+      height += Math.cos(x * 0.02) * Math.sin(z * 0.022) * 5;
+      height += Math.sin(x * 0.035) * Math.sin(z * 0.03) * 3;
+
+      // Small scale detail across entire valley
       height += Math.sin(x * 0.08) * Math.cos(z * 0.07) * 2;
-      height += (Math.random() - 0.5) * 1.5;
+      height += Math.cos(x * 0.12) * Math.sin(z * 0.11) * 1.5;
+      height += (Math.random() - 0.5) * 2;
 
-      // Create dramatic peaks near center
-      if (distanceFromCenter < 100) {
-        const peakMultiplier = (100 - distanceFromCenter) / 100;
-        height += Math.sin(x * 0.03) * Math.cos(z * 0.03) * 12 * peakMultiplier;
-        height += Math.sin(x * 0.045) * Math.sin(z * 0.04) * 8 * peakMultiplier;
-      }
-
-      // Distant horizon mountains
-      if (distanceFromCenter > 250) {
-        const horizonEffect = (distanceFromCenter - 250) / 150;
-        height += Math.sin(x * 0.003) * Math.cos(z * 0.003) * 25 * Math.min(horizonEffect, 1);
+      // Create interesting terrain features in different zones
+      if (distanceFromCenter < 150) {
+        // Central valley - gentle rolling terrain
+        height += Math.sin(x * 0.04) * Math.cos(z * 0.04) * 6;
+        height += Math.sin(x * 0.06) * Math.sin(z * 0.055) * 4;
+      } else if (distanceFromCenter < 280) {
+        // Mid valley - more dramatic features
+        height += Math.sin(x * 0.015) * Math.cos(z * 0.018) * 10;
+        height += Math.cos(x * 0.025) * Math.sin(z * 0.02) * 8;
+      } else {
+        // Approaching mountain ring - steep rises and dramatic features
+        const edgeEffect = (distanceFromCenter - 280) / 70;
+        height += Math.sin(x * 0.008) * Math.cos(z * 0.008) * 15 * edgeEffect;
+        height += Math.sin(x * 0.005) * Math.sin(z * 0.006) * 20 * edgeEffect;
       }
 
       positions[i + 1] = height;
@@ -303,44 +312,52 @@ class Killer7Scene {
   }
 
   private createVerticalStacks(material: THREE.ShaderMaterial): void {
-    // Create tall stacks of rectangular blocks
-    for (let stack = 0; stack < 25; stack++) {
-      const stackHeight = 5 + Math.floor(Math.random() * 12); // 5-16 blocks high
-      const baseSize = 2 + Math.random() * 4; // Base size variety
+    // Create irregular piles of rectangular blocks
+    for (let pile = 0; pile < 30; pile++) {
+      const pileSize = 8 + Math.floor(Math.random() * 15); // 8-22 blocks per pile
+      const baseSize = 2 + Math.random() * 4;
 
-      // Stack position
-      const stackX = (Math.random() - 0.5) * 300;
-      const stackZ = (Math.random() - 0.5) * 300;
+      // Pile center position
+      const pileX = (Math.random() - 0.5) * 300;
+      const pileZ = (Math.random() - 0.5) * 300;
 
-      let currentHeight = 0;
+      // Create irregular pile with blocks scattered around center
+      for (let block = 0; block < pileSize; block++) {
+        // Much more varied block dimensions
+        const blockWidth = baseSize + (Math.random() - 0.5) * 3;
+        const blockHeight = 0.5 + Math.random() * 2;
+        const blockDepth = baseSize + (Math.random() - 0.5) * 3;
 
-      for (let block = 0; block < stackHeight; block++) {
-        // Vary block dimensions for each level
-        const blockWidth = baseSize + (Math.random() - 0.5) * 1;
-        const blockHeight = 0.8 + Math.random() * 1.2;
-        const blockDepth = baseSize + (Math.random() - 0.5) * 1;
-
-        const stackBlock = new THREE.Mesh(
+        const pileBlock = new THREE.Mesh(
           new THREE.BoxGeometry(blockWidth, blockHeight, blockDepth),
           material
         );
 
-        // Position block with slight random offset for organic look
-        stackBlock.position.set(
-          stackX + (Math.random() - 0.5) * 0.5,
-          currentHeight + blockHeight / 2,
-          stackZ + (Math.random() - 0.5) * 0.5
+        // Random scatter around pile center with increasing spread
+        const scatterRadius = Math.random() * 4;
+        const scatterAngle = Math.random() * Math.PI * 2;
+        const scatterX = Math.cos(scatterAngle) * scatterRadius;
+        const scatterZ = Math.sin(scatterAngle) * scatterRadius;
+
+        // Height based on distance from center (pile effect) with randomness
+        const distanceFromCenter = Math.sqrt(scatterX * scatterX + scatterZ * scatterZ);
+        const pileHeight = Math.max(0, (4 - distanceFromCenter) * 2 + Math.random() * 3);
+
+        pileBlock.position.set(
+          pileX + scatterX,
+          pileHeight + blockHeight / 2,
+          pileZ + scatterZ
         );
 
-        // Slight rotation for each block
-        stackBlock.rotation.y = (Math.random() - 0.5) * 0.2;
+        // Much more random rotations for chaotic look
+        pileBlock.rotation.x = (Math.random() - 0.5) * 0.6;
+        pileBlock.rotation.y = Math.random() * Math.PI;
+        pileBlock.rotation.z = (Math.random() - 0.5) * 0.4;
 
-        stackBlock.castShadow = true;
-        stackBlock.receiveShadow = true;
-        this.scene.add(stackBlock);
-        this.geometryObjects.push(stackBlock);
-
-        currentHeight += blockHeight;
+        pileBlock.castShadow = true;
+        pileBlock.receiveShadow = true;
+        this.scene.add(pileBlock);
+        this.geometryObjects.push(pileBlock);
       }
     }
 
