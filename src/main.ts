@@ -917,9 +917,17 @@ class Killer7Scene {
   }
 
   private setOverviewCamera(): void {
-    // Camera position matching starting-angle-2.png with diagonal valley view
-    const overviewPosition = new THREE.Vector3(-80, 45, 40);
-    const overviewTarget = new THREE.Vector3(30, 20, -20);
+    // Camera position zoomed out 5 scroll intervals from original angle
+    const originalPos = new THREE.Vector3(-80, 45, 40);
+    const originalTarget = new THREE.Vector3(30, 20, -20);
+
+    // Calculate direction from target to camera
+    const direction = originalPos.clone().sub(originalTarget).normalize();
+
+    // Move camera further away (each scroll ~= 10-15 units, so 5 scrolls ~= 60 units)
+    const zoomOutDistance = 60;
+    const overviewPosition = originalTarget.clone().add(direction.multiplyScalar(originalPos.distanceTo(originalTarget) + zoomOutDistance));
+    const overviewTarget = originalTarget.clone();
 
     console.log('Overview Position:', overviewPosition);
     console.log('Overview Target:', overviewTarget);
