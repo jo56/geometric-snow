@@ -1201,6 +1201,93 @@ class Killer7Scene {
         this.animatedObjects.push(orbital);
       }
     });
+
+    // Add special structures under all diamonds
+    diamondPositions.forEach((pos, index) => {
+      this.createDiamondStructures(material, debrisMaterial, pos, index);
+    });
+  }
+
+  private createDiamondStructures(material: THREE.ShaderMaterial, debrisMaterial: THREE.MeshBasicMaterial, position: { x: number, z: number, height: number }, diamondIndex: number): void {
+    // Create consistent debris piles under each diamond
+    this.createDebrisPile(material, debrisMaterial, position);
+  }
+
+  private createDebrisPile(material: THREE.ShaderMaterial, debrisMaterial: THREE.MeshBasicMaterial, position: { x: number, z: number, height: number }): void {
+    // Create debris pile like the original ground structures
+    const pileSize = 8 + Math.floor(Math.random() * 10); // 8-17 blocks per pile
+    const baseSize = 3 + Math.random() * 2;
+
+    // Create irregular pile with blocks scattered around center
+    for (let block = 0; block < pileSize; block++) {
+      // Varied block dimensions
+      const blockWidth = baseSize + (Math.random() - 0.5) * 2;
+      const blockHeight = 1 + Math.random() * 3;
+      const blockDepth = baseSize + (Math.random() - 0.5) * 2;
+
+      const pileBlock = new THREE.Mesh(
+        new THREE.BoxGeometry(blockWidth, blockHeight, blockDepth),
+        Math.random() > 0.6 ? debrisMaterial : material
+      );
+
+      // Random scatter around pile center
+      const scatterRadius = Math.random() * 6;
+      const scatterAngle = Math.random() * Math.PI * 2;
+      const scatterX = Math.cos(scatterAngle) * scatterRadius;
+      const scatterZ = Math.sin(scatterAngle) * scatterRadius;
+
+      // Height based on distance from center (pile effect) with randomness
+      const distanceFromCenter = Math.sqrt(scatterX * scatterX + scatterZ * scatterZ);
+      const pileHeight = Math.max(0, (6 - distanceFromCenter) * 1.5 + Math.random() * 2);
+
+      pileBlock.position.set(
+        position.x + scatterX,
+        pileHeight + blockHeight / 2,
+        position.z + scatterZ
+      );
+
+      // Random rotations for chaotic look
+      pileBlock.rotation.x = (Math.random() - 0.5) * 0.4;
+      pileBlock.rotation.y = Math.random() * Math.PI;
+      pileBlock.rotation.z = (Math.random() - 0.5) * 0.3;
+
+      pileBlock.castShadow = true;
+      pileBlock.receiveShadow = true;
+      this.scene.add(pileBlock);
+      this.geometryObjects.push(pileBlock);
+    }
+
+    // Add a few larger platform pieces around each pile
+    for (let i = 0; i < 3; i++) {
+      const angle = (i / 3) * Math.PI * 2 + Math.random() * 0.5;
+      const radius = 8 + Math.random() * 4;
+
+      const platform = new THREE.Mesh(
+        new THREE.BoxGeometry(
+          4 + Math.random() * 3,
+          0.5 + Math.random() * 0.8,
+          3 + Math.random() * 2
+        ),
+        material
+      );
+
+      platform.position.set(
+        position.x + Math.cos(angle) * radius,
+        0.3 + Math.random() * 0.5,
+        position.z + Math.sin(angle) * radius
+      );
+
+      platform.rotation.set(
+        (Math.random() - 0.5) * 0.3,
+        Math.random() * Math.PI,
+        (Math.random() - 0.5) * 0.2
+      );
+
+      platform.castShadow = true;
+      platform.receiveShadow = true;
+      this.scene.add(platform);
+      this.geometryObjects.push(platform);
+    }
   }
 
   private createBinaryToonMaterial(): THREE.ShaderMaterial {
