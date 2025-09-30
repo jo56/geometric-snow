@@ -45,10 +45,34 @@ class Killer7Scene {
 
     // Complete loading
     this.updateLoadingProgress(100, 'Complete!');
+
+    // Set camera to overview position immediately (no animation)
+    const originalPos = new THREE.Vector3(-80, 45, 40);
+    const originalTarget = new THREE.Vector3(30, 20, -20);
+    const direction = originalPos.clone().sub(originalTarget).normalize();
+    const zoomOutDistance = 60;
+    const overviewPosition = originalTarget.clone().add(direction.multiplyScalar(originalPos.distanceTo(originalTarget) + zoomOutDistance));
+    const overviewTarget = originalTarget.clone();
+
+    this.camera.position.copy(overviewPosition);
+    this.controls.target.copy(overviewTarget);
+    this.controls.update();
+
     setTimeout(() => {
+      // Start canvas fade first
+      const canvasContainer = document.getElementById('canvas-container');
+      if (canvasContainer) {
+        canvasContainer.style.opacity = '1';
+      }
       this.hideLoadingScreen();
-      this.fadeInScene();
-      this.setOverviewCamera();
+
+      // Start menu fade 2 seconds after canvas starts
+      setTimeout(() => {
+        const musicPlayer = document.getElementById('music-player');
+        if (musicPlayer) {
+          musicPlayer.style.opacity = '1';
+        }
+      }, 2000);
     }, 500);
   }
 
@@ -64,11 +88,11 @@ class Killer7Scene {
     const loadingScreen = document.getElementById('loading-screen');
     if (loadingScreen) {
       loadingScreen.style.opacity = '0';
-      loadingScreen.style.transition = 'opacity 0.5s ease';
+      loadingScreen.style.transition = 'opacity 1.5s ease';
       setTimeout(() => {
         loadingScreen.style.display = 'none';
         this.isLoaded = true;
-      }, 500);
+      }, 1500);
     }
   }
 
@@ -111,8 +135,23 @@ class Killer7Scene {
 
     this.controls.update();
 
-    // Add to DOM
-    document.getElementById('app')?.appendChild(this.renderer.domElement);
+    // Add to DOM wrapped in a container for fade effect
+    const appElement = document.getElementById('app');
+    if (appElement) {
+      const canvasContainer = document.createElement('div');
+      canvasContainer.id = 'canvas-container';
+      canvasContainer.style.position = 'absolute';
+      canvasContainer.style.top = '0';
+      canvasContainer.style.left = '0';
+      canvasContainer.style.width = '100%';
+      canvasContainer.style.height = '100%';
+      canvasContainer.style.zIndex = '1';
+      canvasContainer.style.opacity = '0';
+      canvasContainer.style.transition = 'opacity 4s ease-in-out';
+      canvasContainer.appendChild(this.renderer.domElement);
+      appElement.appendChild(canvasContainer);
+      console.log('Canvas container created with opacity:', canvasContainer.style.opacity);
+    }
 
     // Window resize
     window.addEventListener('resize', () => {
@@ -1643,9 +1682,34 @@ class Killer7Scene {
   }
 
   private fadeInScene(): void {
-    const appElement = document.getElementById('app');
-    if (appElement) {
-      appElement.classList.add('fade-in');
+    // Fade in the canvas container and music player simultaneously
+    const canvasContainer = document.getElementById('canvas-container');
+    const musicPlayer = document.getElementById('music-player');
+
+    console.log('=== fadeInScene called ===');
+    console.log('Canvas container found:', !!canvasContainer);
+    console.log('Music player found:', !!musicPlayer);
+
+    if (canvasContainer) {
+      const computedStyle = window.getComputedStyle(canvasContainer);
+      console.log('Canvas container BEFORE - inline opacity:', canvasContainer.style.opacity);
+      console.log('Canvas container BEFORE - computed opacity:', computedStyle.opacity);
+      console.log('Canvas container BEFORE - transition:', canvasContainer.style.transition);
+      canvasContainer.style.opacity = '1';
+      console.log('Canvas container AFTER - inline opacity:', canvasContainer.style.opacity);
+    } else {
+      console.error('Canvas container NOT FOUND!');
+    }
+
+    if (musicPlayer) {
+      const computedStyle = window.getComputedStyle(musicPlayer);
+      console.log('Music player BEFORE - inline opacity:', musicPlayer.style.opacity);
+      console.log('Music player BEFORE - computed opacity:', computedStyle.opacity);
+      console.log('Music player BEFORE - transition:', musicPlayer.style.transition);
+      musicPlayer.style.opacity = '1';
+      console.log('Music player AFTER - inline opacity:', musicPlayer.style.opacity);
+    } else {
+      console.error('Music player NOT FOUND!');
     }
   }
 
