@@ -1598,6 +1598,7 @@ class Killer7Scene {
       const clickedDiamond = intersects[0].object as THREE.Mesh;
       const diamondIndex = clickedDiamond.userData.diamondIndex;
       this.focusOnDiamond(diamondIndex);
+      this.updateTrackNameUI(diamondIndex);
     }
   }
 
