@@ -860,8 +860,8 @@ class Killer7Scene {
   }
 
   private createOptimizedParticleSystem(): void {
-    // Optimized particle system with fewer particles but better performance
-    const particleCount = 500; // Reduced from 1000 for better performance
+    // Optimized particle system with more particles for smaller size
+    const particleCount = 1500; // Increased for better coverage with smaller particles
     const particleGeometry = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
     const velocities = new Float32Array(particleCount * 3);
@@ -887,7 +887,7 @@ class Killer7Scene {
     // Optimized particle material
     const particleMaterial = new THREE.PointsMaterial({
       color: 0x808080,        // Light gray for soft appearance
-      size: 6.0,              // Slightly larger to compensate for fewer particles
+      size: 2.0,              // Smaller particles
       transparent: true,
       opacity: 0.6,           // Slightly more opaque to compensate
       blending: THREE.NormalBlending,
@@ -1779,8 +1779,8 @@ class Killer7Scene {
         }
       });
 
-      // Optimized particle animation (update every other frame for performance)
-      if (this.particles && this.particleVelocities && Math.floor(time * 60) % 2 === 0) {
+      // Smooth particle animation (every frame)
+      if (this.particles && this.particleVelocities) {
         const positions = this.particles.geometry.attributes.position.array as Float32Array;
         const particleCount = positions.length / 3;
 
@@ -1788,9 +1788,9 @@ class Killer7Scene {
           const i3 = i * 3;
 
           // Update positions based on velocities
-          positions[i3] += this.particleVelocities[i3] * 2.0;         // X (doubled to compensate for every-other-frame update)
-          positions[i3 + 1] += this.particleVelocities[i3 + 1] * 2.0; // Y
-          positions[i3 + 2] += this.particleVelocities[i3 + 2] * 2.0; // Z
+          positions[i3] += this.particleVelocities[i3];
+          positions[i3 + 1] += this.particleVelocities[i3 + 1];
+          positions[i3 + 2] += this.particleVelocities[i3 + 2];
 
           // Reset particles that fall below ground or drift too far
           if (positions[i3 + 1] < -10 ||
