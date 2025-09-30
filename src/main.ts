@@ -851,9 +851,9 @@ class Killer7Scene {
   }
 
   private setOverviewCamera(): void {
-    // High overview position to see all diamonds
-    const overviewPosition = new THREE.Vector3(0, 80, 80);
-    const overviewTarget = new THREE.Vector3(0, 40, 0);
+    // More horizontal view matching the starting angle image
+    const overviewPosition = new THREE.Vector3(-40, 35, 60);
+    const overviewTarget = new THREE.Vector3(20, 25, -10);
 
     this.animateToPosition(overviewPosition, overviewTarget, 2500);
     console.log('Overview camera activated');
