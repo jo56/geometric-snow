@@ -1,0 +1,20 @@
+{
+  "name": "threejs-killer7-scene",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/three": "^0.169.0",
+    "typescript": "^5.0.2",
+    "vite": "^5.0.8"
+  },
+  "dependencies": {
+    "three": "^0.169.0"
+  }
+}

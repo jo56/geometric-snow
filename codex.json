@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "read": ["."],
+    "write": [
+      "src",
+      "tests",
+      "package.json",
+      "tsconfig.json",
+      "vite.config.*",
+      "next.config.*"
+    ]
+  },
+  "ignore": [
+    "node_modules",
+    ".git",
+    ".env*",
+    "dist",
+    "build",
+    "coverage",
+    "tmp",
+    "*.log"
+  ]
+}
