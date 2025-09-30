@@ -195,65 +195,160 @@ class Killer7Scene {
     this.createHorizonMountains(material);
   }
 
-  private createHorizonMountains(material: THREE.ShaderMaterial): void {
-    // Dense mountain system to create a complete mountain wall
+  private createComplexMountain(material: THREE.ShaderMaterial, totalHeight: number, baseRadius: number): THREE.Mesh {
+    const mountainType = Math.random();
+    let mountainGeometry;
 
-    // Inner mountain ring - close wall
+    if (mountainType < 0.4) {
+      // Irregular cones with complex vertex manipulation
+      mountainGeometry = new THREE.ConeGeometry(baseRadius, totalHeight, 12, 1);
+
+      // Add noise to vertices for irregular peaks and ridges
+      const positions = mountainGeometry.attributes.position.array as Float32Array;
+      for (let i = 0; i < positions.length; i += 3) {
+        const x = positions[i];
+        const y = positions[i + 1];
+        const z = positions[i + 2];
+
+        // Only modify vertices that aren't at the base (y > -totalHeight/2)
+        if (y > -totalHeight/2 + 0.1) {
+          const noise = (Math.random() - 0.5) * 0.3;
+          const heightFactor = (y + totalHeight/2) / totalHeight; // 0 at base, 1 at peak
+
+          positions[i] = x * (1 + noise * heightFactor);
+          positions[i + 2] = z * (1 + noise * heightFactor);
+
+          // Add vertical noise but ensure it doesn't go below base
+          const verticalNoise = (Math.random() - 0.5) * totalHeight * 0.1 * heightFactor;
+          positions[i + 1] = Math.max(y + verticalNoise, -totalHeight/2);
+        }
+      }
+      mountainGeometry.computeVertexNormals();
+
+    } else if (mountainType < 0.7) {
+      // Complex cylinders with tapered irregular tops
+      mountainGeometry = new THREE.CylinderGeometry(
+        baseRadius * (0.2 + Math.random() * 0.3), // Variable top radius
+        baseRadius,
+        totalHeight,
+        12,
+        3 // Multiple height segments for complexity
+      );
+
+      // Add irregularity to the cylinder
+      const positions = mountainGeometry.attributes.position.array as Float32Array;
+      for (let i = 0; i < positions.length; i += 3) {
+        const x = positions[i];
+        const y = positions[i + 1];
+        const z = positions[i + 2];
+
+        if (y > -totalHeight/2 + 0.1) {
+          const heightFactor = (y + totalHeight/2) / totalHeight;
+          const radialNoise = 1 + (Math.random() - 0.5) * 0.4 * heightFactor;
+
+          positions[i] = x * radialNoise;
+          positions[i + 2] = z * radialNoise;
+        }
+      }
+      mountainGeometry.computeVertexNormals();
+
+    } else {
+      // Deformed octahedrons for angular, crystalline peaks
+      mountainGeometry = new THREE.OctahedronGeometry(baseRadius * 0.8, 1);
+      mountainGeometry.scale(1, totalHeight / (baseRadius * 1.6), 1);
+
+      // Add asymmetric deformation
+      const positions = mountainGeometry.attributes.position.array as Float32Array;
+      for (let i = 0; i < positions.length; i += 3) {
+        const x = positions[i];
+        const y = positions[i + 1];
+        const z = positions[i + 2];
+
+        // Deform but ensure base stays at or above y = -totalHeight/2
+        const deformX = (Math.random() - 0.5) * 0.3;
+        const deformZ = (Math.random() - 0.5) * 0.3;
+
+        positions[i] = x * (1 + deformX);
+        positions[i + 2] = z * (1 + deformZ);
+
+        // Ensure no vertex goes below the intended base
+        positions[i + 1] = Math.max(y, -totalHeight/2);
+      }
+      mountainGeometry.computeVertexNormals();
+    }
+
+    return new THREE.Mesh(mountainGeometry, material);
+  }
+
+  private createHorizonMountains(material: THREE.ShaderMaterial): void {
+    // Dense mountain system to create a complete mountain wall - positioned far from open field
+
+    // Inner mountain ring - moved further from center to avoid floating near open field
     const innerCount = 24;
-    const innerRadius = 350;
+    const innerRadius = 500; // Increased from 350 to push mountains back
 
     for (let i = 0; i < innerCount; i++) {
       const angle = (i / innerCount) * Math.PI * 2;
       const radius = innerRadius + (Math.random() - 0.5) * 60;
 
       const mountainHeight = 180 + Math.random() * 120;
-      const mountain = new THREE.Mesh(
-        new THREE.ConeGeometry(
-          50 + Math.random() * 60,
-          mountainHeight,
-          6
-        ),
-        material
-      );
+
+      // Create interesting mountain shapes that never go below ground
+      const mountain = this.createComplexMountain(material, mountainHeight, 50 + Math.random() * 60);
+
+      // Position mountain so its absolute bottom is at ground level (y=0)
+      const groundOffset = mountainHeight / 2; // This puts the center at height/2, bottom at 0
 
       mountain.position.set(
         Math.cos(angle) * radius,
-        mountainHeight / 2,
+        groundOffset,
         Math.sin(angle) * radius
       );
 
+      // Only Y rotation to prevent any tilting that could create underground parts
+      mountain.rotation.x = 0;
       mountain.rotation.y = Math.random() * Math.PI;
+      mountain.rotation.z = 0;
+
+      // No scaling to ensure predictable geometry bounds
+      mountain.scale.set(1, 1, 1);
+
       mountain.castShadow = false;
       mountain.receiveShadow = false;
       this.scene.add(mountain);
       this.geometryObjects.push(mountain);
     }
 
-    // Middle mountain ring - main wall
+    // Middle mountain ring - main wall with complex shapes
     const middleCount = 20;
-    const middleRadius = 450;
+    const middleRadius = 600; // Increased from 450 to push further back
 
     for (let i = 0; i < middleCount; i++) {
       const angle = (i / middleCount) * Math.PI * 2;
       const radius = middleRadius + (Math.random() - 0.5) * 80;
 
       const mountainHeight = 220 + Math.random() * 150;
-      const mountain = new THREE.Mesh(
-        new THREE.ConeGeometry(
-          70 + Math.random() * 80,
-          mountainHeight,
-          6
-        ),
-        material
-      );
+
+      // Create interesting mountain shapes that never go below ground
+      const mountain = this.createComplexMountain(material, mountainHeight, 70 + Math.random() * 80);
+
+      // Position mountain so its absolute bottom is at ground level (y=0)
+      const groundOffset = mountainHeight / 2; // This puts the center at height/2, bottom at 0
 
       mountain.position.set(
         Math.cos(angle) * radius,
-        mountainHeight / 2,
+        groundOffset,
         Math.sin(angle) * radius
       );
 
+      // Only Y rotation to prevent any tilting that could create underground parts
+      mountain.rotation.x = 0;
       mountain.rotation.y = Math.random() * Math.PI;
+      mountain.rotation.z = 0;
+
+      // No scaling to ensure predictable geometry bounds
+      mountain.scale.set(1, 1, 1);
+
       mountain.castShadow = false;
       mountain.receiveShadow = false;
       this.scene.add(mountain);
@@ -262,7 +357,7 @@ class Killer7Scene {
 
     // Outer mountain ring - backdrop wall
     const outerCount = 16;
-    const outerRadius = 550;
+    const outerRadius = 750; // Increased from 550 to push to proper distance
 
     for (let i = 0; i < outerCount; i++) {
       const angle = (i / outerCount) * Math.PI * 2;
@@ -291,11 +386,11 @@ class Killer7Scene {
       this.geometryObjects.push(mountain);
     }
 
-    // Fill gaps with extra mountains
-    const gapFillers = 30;
+    // Fill gaps with extra mountains - positioned far from open field
+    const gapFillers = 20; // Reduced count
     for (let i = 0; i < gapFillers; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const radius = 380 + Math.random() * 200; // Between inner and outer rings
+      const radius = 550 + Math.random() * 200; // Much further from center, between middle and outer rings
 
       const mountainHeight = 150 + Math.random() * 180;
       const mountain = new THREE.Mesh(
@@ -564,7 +659,9 @@ class Killer7Scene {
     light.shadow.camera.bottom = -400;
     this.scene.add(light);
 
-    // NO ambient light for pure blacks
+    // Add subtle ambient light to ensure visibility from all angles
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+    this.scene.add(ambientLight);
 
     // Add background architecture
     this.createBackground();
@@ -868,9 +965,9 @@ class Killer7Scene {
           vec3 normal = normalize(vNormal);
           float NdotL = max(dot(normal, lightDirection), 0.0);
 
-          // Binary step - but with grayer tones for both dark and light
+          // Binary step with better contrast against light gray background
           float shade = step(0.5, NdotL);
-          vec3 color = mix(vec3(0.2), vec3(0.85), shade);  // Dark gray to light gray
+          vec3 color = mix(vec3(0.1), vec3(0.9), shade);  // Darker contrast for visibility
 
           gl_FragColor = vec4(color, 1.0);
         }
