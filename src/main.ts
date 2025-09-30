@@ -1608,18 +1608,8 @@ class Killer7Scene {
   }
 
   private createDiamondMaterial(): THREE.ShaderMaterial {
-    return this.createInvertedToonMaterial();
-  }
-
-  private createDebrisMaterial(): THREE.ShaderMaterial {
-    return this.createInvertedToonMaterial();
-  }
-
-  private createInvertedToonMaterial(): THREE.ShaderMaterial {
     return new THREE.ShaderMaterial({
-      uniforms: {
-        lightDirection: { value: new THREE.Vector3(5, 10, 5).normalize() }
-      },
+      uniforms: {},
       vertexShader: `
         varying vec3 vNormal;
         varying vec3 vPosition;
@@ -1631,13 +1621,51 @@ class Killer7Scene {
         }
       `,
       fragmentShader: `
-        uniform vec3 lightDirection;
         varying vec3 vNormal;
         varying vec3 vPosition;
 
         void main() {
-          // Solid black
-          gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+          vec3 normal = normalize(vNormal);
+
+          // Solid black base with solid white edge pattern
+          float edgeIntensity = 1.0 - abs(dot(normal, normalize(vPosition)));
+          float edge = step(0.6, edgeIntensity); // Binary step for solid white edges
+
+          vec3 color = mix(vec3(0.0), vec3(1.0), edge);
+
+          gl_FragColor = vec4(color, 1.0);
+        }
+      `
+    });
+  }
+
+  private createDebrisMaterial(): THREE.ShaderMaterial {
+    return new THREE.ShaderMaterial({
+      uniforms: {},
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+
+        void main() {
+          vec3 normal = normalize(vNormal);
+
+          // Solid black base with solid white edge pattern
+          float edgeIntensity = 1.0 - abs(dot(normal, normalize(vPosition)));
+          float edge = step(0.6, edgeIntensity); // Binary step for solid white edges
+
+          vec3 color = mix(vec3(0.0), vec3(1.0), edge);
+
+          gl_FragColor = vec4(color, 1.0);
         }
       `
     });
@@ -1680,7 +1708,15 @@ class Killer7Scene {
     geometry.setIndex(indices);
     geometry.computeVertexNormals();
 
-    const mesh = new THREE.Mesh(geometry, material);
+    // Create solid black material
+    const blackMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+    const mesh = new THREE.Mesh(geometry, blackMaterial);
+
+    // Add white edges
+    const edges = new THREE.EdgesGeometry(geometry, 1);
+    const edgeMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
+    const edgeLines = new THREE.LineSegments(edges, edgeMaterial);
+    mesh.add(edgeLines);
 
     return mesh;
   }
