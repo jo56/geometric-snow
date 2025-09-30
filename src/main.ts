@@ -1772,11 +1772,86 @@ class Killer7Scene {
 
     const mesh = new THREE.Mesh(geometry, blackMaterial);
 
-    // Use EdgesGeometry to only show outer edges, not internal triangulation
+    // Add black edges to blend with shape
     const edges = new THREE.EdgesGeometry(geometry, 1);
-    const edgeMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+    const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
     const edgeLines = new THREE.LineSegments(edges, edgeMaterial);
     mesh.add(edgeLines);
+
+    const patternGroup = new THREE.Group();
+
+    // Create continuous horizontal belt around the middle (halfway between top and bottom)
+    const beltY = -size * 0.5; // Halfway between bottom (-size) and top (0)
+    const beltRadius = size * 0.5; // Radius at the belt height
+    const beltSegments = 64; // High resolution for smooth belt
+    const beltPoints = [];
+
+    for (let i = 0; i <= beltSegments; i++) {
+      const theta = (i / beltSegments) * Math.PI * 2;
+      beltPoints.push(new THREE.Vector3(
+        Math.cos(theta) * beltRadius,
+        beltY,
+        Math.sin(theta) * beltRadius
+      ));
+    }
+
+    const beltGeometry = new THREE.BufferGeometry().setFromPoints(beltPoints);
+    const beltMaterial = new THREE.LineBasicMaterial({
+      color: 0xffffff,
+      linewidth: 10
+    });
+    const beltLine = new THREE.Line(beltGeometry, beltMaterial);
+    patternGroup.add(beltLine);
+
+    // Add pattern to top face - create a star/radial pattern
+    const centerY = 0; // Top face is at y = 0
+
+    // Create 8 lines radiating from center to each vertex of the octagon
+    for (let i = 0; i < 8; i++) {
+      const theta = (i / 8) * Math.PI * 2;
+      const radiusAtTop = size * 0.85; // Slightly inset from edge
+
+      const radialPoints = [
+        new THREE.Vector3(0, centerY, 0), // Center of top face
+        new THREE.Vector3(
+          Math.cos(theta) * radiusAtTop,
+          centerY,
+          Math.sin(theta) * radiusAtTop
+        )
+      ];
+
+      const radialGeometry = new THREE.BufferGeometry().setFromPoints(radialPoints);
+      const radialMaterial = new THREE.LineBasicMaterial({
+        color: 0xffffff,
+        linewidth: 8
+      });
+      const radialLine = new THREE.Line(radialGeometry, radialMaterial);
+      patternGroup.add(radialLine);
+    }
+
+    // Add a small circle at the center of the top face
+    const centerCirclePoints = [];
+    const centerCircleRadius = size * 0.15;
+    const centerCircleSegments = 32;
+
+    for (let i = 0; i <= centerCircleSegments; i++) {
+      const theta = (i / centerCircleSegments) * Math.PI * 2;
+      centerCirclePoints.push(new THREE.Vector3(
+        Math.cos(theta) * centerCircleRadius,
+        centerY,
+        Math.sin(theta) * centerCircleRadius
+      ));
+    }
+
+    const centerCircleGeometry = new THREE.BufferGeometry().setFromPoints(centerCirclePoints);
+    const centerCircleMaterial = new THREE.LineBasicMaterial({
+      color: 0xffffff,
+      linewidth: 8
+    });
+    const centerCircleLine = new THREE.Line(centerCircleGeometry, centerCircleMaterial);
+    patternGroup.add(centerCircleLine);
+
+    mesh.add(patternGroup);
 
     return mesh;
   }
