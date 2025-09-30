@@ -13,16 +13,21 @@ export class BinaryMaterialSystem {
 
   private createBinaryGradientTexture(): THREE.DataTexture {
     const size = 16;
-    const data = new Uint8Array(size * 3);
+    const data = new Uint8Array(size * 4); // RGBA format
 
     for (let i = 0; i < size; i++) {
       const value = i < size / 2 ? 0 : 255;
-      data[i * 3] = value;     // R
-      data[i * 3 + 1] = value; // G
-      data[i * 3 + 2] = value; // B
+      data[i * 4] = value;     // R
+      data[i * 4 + 1] = value; // G
+      data[i * 4 + 2] = value; // B
+      data[i * 4 + 3] = 255;   // A
     }
 
-    const texture = new THREE.DataTexture(data, size, 1, THREE.RGBFormat);
+    const texture = new THREE.DataTexture(data, size, 1, THREE.RGBAFormat);
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
     texture.needsUpdate = true;
     return texture;
   }
