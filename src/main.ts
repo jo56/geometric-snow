@@ -21,6 +21,8 @@ class Killer7Scene {
   private spinningDiamonds = new Set<number>();
   private currentAudio: HTMLAudioElement | null = null;
   private currentTrack: number = -1;
+  private particles!: THREE.Points;
+  private particleVelocities!: Float32Array;
 
   constructor() {
     this.init();
@@ -28,11 +30,11 @@ class Killer7Scene {
     this.setupPostProcessing();
     this.animate();
 
-    // Start with fade-in and overview animation after short delay
+    // Start with fade-in and overview animation after delay for mountain generation
     setTimeout(() => {
       this.fadeInScene();
       this.setOverviewCamera();
-    }, 800);
+    }, 1200);
   }
 
   private init(): void {
@@ -41,7 +43,7 @@ class Killer7Scene {
     this.scene.background = new THREE.Color(0xf8f8f8); // Very light gray background
 
     // Camera - updated for much larger terrain with better culling
-    this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
     // Start with a different position for the animation to work
     this.camera.position.set(20, 20, 20);
 
@@ -62,7 +64,7 @@ class Killer7Scene {
 
     // Allow much more zooming for the larger terrain
     this.controls.minDistance = 2;
-    this.controls.maxDistance = 800; // Much larger to see full terrain and mountains
+    this.controls.maxDistance = 1200; // Much larger to see full expanded terrain and mountains
 
     // Allow full rotation
     this.controls.minPolarAngle = 0;
@@ -83,10 +85,25 @@ class Killer7Scene {
 
     // Animation toggle controls and camera switching
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'p' || e.key === 'P') {
-        this.toggleAnimation();
-      } else if (e.key === 'Escape') {
+      if (e.key === 'Escape' || e.key === 'f' || e.key === 'F') {
         this.resetToOverview();
+      } else if (e.key === 'p' || e.key === 'P') {
+        // Toggle play/pause for current track
+        if (this.currentTrack >= 0) {
+          this.toggleTrack(this.currentTrack);
+        }
+      } else if (e.key >= '1' && e.key <= '7') {
+        // Number keys for track selection (camera focus only)
+        const trackIndex = parseInt(e.key) - 1;
+        this.focusOnDiamond(trackIndex);
+        this.updateTrackNameUI(trackIndex);
+      } else if ('qwertyuQWERTYU'.includes(e.key)) {
+        // QWERTYU keys for playing tracks
+        const playKeys = 'qwertyu';
+        const trackIndex = playKeys.indexOf(e.key.toLowerCase());
+        if (trackIndex !== -1) {
+          this.toggleTrack(trackIndex);
+        }
       }
     });
 
@@ -129,9 +146,9 @@ class Killer7Scene {
   }
 
   private createTerrain(material: THREE.ShaderMaterial): void {
-    // Create massive mountain valley terrain
-    const terrainSize = 800; // Massive terrain to reach mountain ring
-    const segments = 120; // High detail for varied terrain
+    // Create massive mountain valley terrain that reaches all the way to mountains
+    const terrainSize = 1600; // Much larger to reach mountain rings at ~750 radius
+    const segments = 160; // Higher detail for the expanded terrain
     const terrainGeometry = new THREE.PlaneGeometry(terrainSize, terrainSize, segments, segments);
 
     // Add mountainous valley terrain with irregular features throughout
@@ -143,9 +160,9 @@ class Killer7Scene {
       // Distance from center for valley effect
       const distanceFromCenter = Math.sqrt(x * x + z * z);
 
-      // Create valley bowl effect - higher at edges, lower in center
-      const valleyDepth = Math.min(distanceFromCenter / 350, 1); // Gradual rise to mountain ring
-      const valleyHeight = valleyDepth * valleyDepth * 8; // Quadratic rise to edges
+      // Create valley bowl effect that reaches mountain bases - higher at edges, lower in center
+      const valleyDepth = Math.min(distanceFromCenter / 500, 1); // Gradual rise to reach mountain ring at ~500-750
+      const valleyHeight = valleyDepth * valleyDepth * 15; // Steeper rise to connect with mountain bases
 
       // Multiple layers of terrain generation across entire valley
       let height = valleyHeight;
@@ -165,20 +182,25 @@ class Killer7Scene {
       height += Math.cos(x * 0.12) * Math.sin(z * 0.11) * 1.5;
       height += (Math.random() - 0.5) * 2;
 
-      // Create interesting terrain features in different zones
-      if (distanceFromCenter < 150) {
+      // Create interesting terrain features in different zones across expanded valley
+      if (distanceFromCenter < 200) {
         // Central valley - gentle rolling terrain
         height += Math.sin(x * 0.04) * Math.cos(z * 0.04) * 6;
         height += Math.sin(x * 0.06) * Math.sin(z * 0.055) * 4;
-      } else if (distanceFromCenter < 280) {
+      } else if (distanceFromCenter < 400) {
         // Mid valley - more dramatic features
-        height += Math.sin(x * 0.015) * Math.cos(z * 0.018) * 10;
-        height += Math.cos(x * 0.025) * Math.sin(z * 0.02) * 8;
+        height += Math.sin(x * 0.015) * Math.cos(z * 0.018) * 12;
+        height += Math.cos(x * 0.025) * Math.sin(z * 0.02) * 10;
+      } else if (distanceFromCenter < 600) {
+        // Outer valley - transitioning to mountain foothills
+        const transitionEffect = (distanceFromCenter - 400) / 200;
+        height += Math.sin(x * 0.008) * Math.cos(z * 0.008) * 18 * transitionEffect;
+        height += Math.sin(x * 0.005) * Math.sin(z * 0.006) * 25 * transitionEffect;
       } else {
-        // Approaching mountain ring - steep rises and dramatic features
-        const edgeEffect = (distanceFromCenter - 280) / 70;
-        height += Math.sin(x * 0.008) * Math.cos(z * 0.008) * 15 * edgeEffect;
-        height += Math.sin(x * 0.005) * Math.sin(z * 0.006) * 20 * edgeEffect;
+        // Mountain foothills - dramatic rises that connect to mountain bases
+        const foothillEffect = Math.min((distanceFromCenter - 600) / 150, 1);
+        height += Math.sin(x * 0.003) * Math.cos(z * 0.003) * 30 * foothillEffect;
+        height += Math.sin(x * 0.002) * Math.sin(z * 0.0025) * 40 * foothillEffect;
       }
 
       positions[i + 1] = height;
@@ -195,71 +217,231 @@ class Killer7Scene {
     this.createHorizonMountains(material);
   }
 
-  private createHorizonMountains(material: THREE.ShaderMaterial): void {
-    // Create distant mountain ranges on horizon
-    const mountainRanges = 8;
-    const baseRadius = 350;
+  private createComplexMountain(material: THREE.Material, totalHeight: number, baseRadius: number): THREE.Mesh {
+    const mountainType = Math.random();
+    let mountainGeometry;
 
-    for (let range = 0; range < mountainRanges; range++) {
-      const angle = (range / mountainRanges) * Math.PI * 2;
-      const rangeRadius = baseRadius + Math.random() * 100;
+    if (mountainType < 0.4) {
+      // Irregular cones with complex vertex manipulation
+      mountainGeometry = new THREE.ConeGeometry(baseRadius, totalHeight, 12, 1);
 
-      // Create mountain range with multiple peaks
-      const peaksInRange = 5 + Math.floor(Math.random() * 8);
+      // Add noise to vertices for irregular peaks and ridges
+      const positions = mountainGeometry.attributes.position.array as Float32Array;
+      for (let i = 0; i < positions.length; i += 3) {
+        const x = positions[i];
+        const y = positions[i + 1];
+        const z = positions[i + 2];
 
-      for (let peak = 0; peak < peaksInRange; peak++) {
-        const peakAngle = angle + (peak - peaksInRange/2) * 0.3;
-        const peakRadius = rangeRadius + (Math.random() - 0.5) * 50;
+        // Only modify vertices that aren't at the base (y > -totalHeight/2)
+        if (y > -totalHeight/2 + 0.1) {
+          const noise = (Math.random() - 0.5) * 0.3;
+          const heightFactor = (y + totalHeight/2) / totalHeight; // 0 at base, 1 at peak
 
-        const mountain = new THREE.Mesh(
-          new THREE.ConeGeometry(
-            8 + Math.random() * 12,  // Base radius
-            20 + Math.random() * 40,  // Height
-            6 + Math.floor(Math.random() * 4) // Segments
-          ),
-          material
-        );
+          positions[i] = x * (1 + noise * heightFactor);
+          positions[i + 2] = z * (1 + noise * heightFactor);
 
-        mountain.position.set(
-          Math.cos(peakAngle) * peakRadius,
-          10 + Math.random() * 15,
-          Math.sin(peakAngle) * peakRadius
-        );
-
-        mountain.rotation.y = Math.random() * Math.PI;
-        mountain.castShadow = true;
-        mountain.receiveShadow = true;
-        this.scene.add(mountain);
-        this.geometryObjects.push(mountain);
+          // Add vertical noise but ensure it doesn't go below base
+          const verticalNoise = (Math.random() - 0.5) * totalHeight * 0.1 * heightFactor;
+          positions[i + 1] = Math.max(y + verticalNoise, -totalHeight/2);
+        }
       }
+      mountainGeometry.computeVertexNormals();
+
+    } else if (mountainType < 0.7) {
+      // Complex cylinders with tapered irregular tops
+      mountainGeometry = new THREE.CylinderGeometry(
+        baseRadius * (0.2 + Math.random() * 0.3), // Variable top radius
+        baseRadius,
+        totalHeight,
+        12,
+        3 // Multiple height segments for complexity
+      );
+
+      // Add irregularity to the cylinder
+      const positions = mountainGeometry.attributes.position.array as Float32Array;
+      for (let i = 0; i < positions.length; i += 3) {
+        const x = positions[i];
+        const y = positions[i + 1];
+        const z = positions[i + 2];
+
+        if (y > -totalHeight/2 + 0.1) {
+          const heightFactor = (y + totalHeight/2) / totalHeight;
+          const radialNoise = 1 + (Math.random() - 0.5) * 0.4 * heightFactor;
+
+          positions[i] = x * radialNoise;
+          positions[i + 2] = z * radialNoise;
+        }
+      }
+      mountainGeometry.computeVertexNormals();
+
+    } else {
+      // Deformed octahedrons for angular, crystalline peaks
+      mountainGeometry = new THREE.OctahedronGeometry(baseRadius * 0.8, 1);
+      mountainGeometry.scale(1, totalHeight / (baseRadius * 1.6), 1);
+
+      // Add asymmetric deformation
+      const positions = mountainGeometry.attributes.position.array as Float32Array;
+      for (let i = 0; i < positions.length; i += 3) {
+        const x = positions[i];
+        const y = positions[i + 1];
+        const z = positions[i + 2];
+
+        // Deform but ensure base stays at or above y = -totalHeight/2
+        const deformX = (Math.random() - 0.5) * 0.3;
+        const deformZ = (Math.random() - 0.5) * 0.3;
+
+        positions[i] = x * (1 + deformX);
+        positions[i + 2] = z * (1 + deformZ);
+
+        // Ensure no vertex goes below the intended base
+        positions[i + 1] = Math.max(y, -totalHeight/2);
+      }
+      mountainGeometry.computeVertexNormals();
     }
 
-    // Add some massive backdrop peaks for drama
-    for (let i = 0; i < 6; i++) {
-      const angle = (i / 6) * Math.PI * 2;
-      const distance = 450 + Math.random() * 100;
+    return new THREE.Mesh(mountainGeometry, material);
+  }
 
-      const massivePeak = new THREE.Mesh(
-        new THREE.ConeGeometry(25, 80 + Math.random() * 40, 8),
-        material
+  private createHorizonMountains(material: THREE.ShaderMaterial): void {
+    // Dense mountain system to create a complete mountain wall - positioned far from open field
+    const mountainMaterial = this.createMountainMaterial();
+
+    // Inner mountain ring - moved further from center to avoid floating near open field
+    const innerCount = 24;
+    const innerRadius = 500; // Increased from 350 to push mountains back
+
+    for (let i = 0; i < innerCount; i++) {
+      const angle = (i / innerCount) * Math.PI * 2;
+      const radius = innerRadius + (Math.random() - 0.5) * 60;
+
+      const mountainHeight = 180 + Math.random() * 120;
+
+      // Create interesting mountain shapes that never go below ground
+      const mountain = this.createComplexMountain(mountainMaterial, mountainHeight, 50 + Math.random() * 60);
+
+      // Position mountain so its absolute bottom is at ground level (y=0)
+      const groundOffset = mountainHeight / 2; // This puts the center at height/2, bottom at 0
+
+      mountain.position.set(
+        Math.cos(angle) * radius,
+        groundOffset,
+        Math.sin(angle) * radius
       );
 
-      massivePeak.position.set(
-        Math.cos(angle) * distance,
-        40,
-        Math.sin(angle) * distance
+      // Only Y rotation to prevent any tilting that could create underground parts
+      mountain.rotation.x = 0;
+      mountain.rotation.y = Math.random() * Math.PI;
+      mountain.rotation.z = 0;
+
+      // No scaling to ensure predictable geometry bounds
+      mountain.scale.set(1, 1, 1);
+
+      mountain.castShadow = false;
+      mountain.receiveShadow = false;
+      this.scene.add(mountain);
+      this.geometryObjects.push(mountain);
+    }
+
+    // Middle mountain ring - main wall with complex shapes
+    const middleCount = 20;
+    const middleRadius = 600; // Increased from 450 to push further back
+
+    for (let i = 0; i < middleCount; i++) {
+      const angle = (i / middleCount) * Math.PI * 2;
+      const radius = middleRadius + (Math.random() - 0.5) * 80;
+
+      const mountainHeight = 220 + Math.random() * 150;
+
+      // Create interesting mountain shapes that never go below ground
+      const mountain = this.createComplexMountain(mountainMaterial, mountainHeight, 70 + Math.random() * 80);
+
+      // Position mountain so its absolute bottom is at ground level (y=0)
+      const groundOffset = mountainHeight / 2; // This puts the center at height/2, bottom at 0
+
+      mountain.position.set(
+        Math.cos(angle) * radius,
+        groundOffset,
+        Math.sin(angle) * radius
       );
 
-      massivePeak.castShadow = true;
-      massivePeak.receiveShadow = true;
-      this.scene.add(massivePeak);
-      this.geometryObjects.push(massivePeak);
+      // Only Y rotation to prevent any tilting that could create underground parts
+      mountain.rotation.x = 0;
+      mountain.rotation.y = Math.random() * Math.PI;
+      mountain.rotation.z = 0;
+
+      // No scaling to ensure predictable geometry bounds
+      mountain.scale.set(1, 1, 1);
+
+      mountain.castShadow = false;
+      mountain.receiveShadow = false;
+      this.scene.add(mountain);
+      this.geometryObjects.push(mountain);
+    }
+
+    // Outer mountain ring - backdrop wall
+    const outerCount = 16;
+    const outerRadius = 750; // Increased from 550 to push to proper distance
+
+    for (let i = 0; i < outerCount; i++) {
+      const angle = (i / outerCount) * Math.PI * 2;
+      const radius = outerRadius + (Math.random() - 0.5) * 100;
+
+      const mountainHeight = 280 + Math.random() * 200;
+      const mountain = new THREE.Mesh(
+        new THREE.ConeGeometry(
+          90 + Math.random() * 100,
+          mountainHeight,
+          6
+        ),
+        mountainMaterial
+      );
+
+      mountain.position.set(
+        Math.cos(angle) * radius,
+        mountainHeight / 2,
+        Math.sin(angle) * radius
+      );
+
+      mountain.rotation.y = Math.random() * Math.PI;
+      mountain.castShadow = false;
+      mountain.receiveShadow = false;
+      this.scene.add(mountain);
+      this.geometryObjects.push(mountain);
+    }
+
+    // Fill gaps with extra mountains - positioned far from open field
+    const gapFillers = 20; // Reduced count
+    for (let i = 0; i < gapFillers; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 550 + Math.random() * 200; // Much further from center, between middle and outer rings
+
+      const mountainHeight = 150 + Math.random() * 180;
+      const mountain = new THREE.Mesh(
+        new THREE.ConeGeometry(
+          40 + Math.random() * 70,
+          mountainHeight,
+          6
+        ),
+        mountainMaterial
+      );
+
+      mountain.position.set(
+        Math.cos(angle) * radius,
+        mountainHeight / 2,
+        Math.sin(angle) * radius
+      );
+
+      mountain.rotation.y = Math.random() * Math.PI;
+      mountain.castShadow = false;
+      mountain.receiveShadow = false;
+      this.scene.add(mountain);
+      this.geometryObjects.push(mountain);
     }
   }
 
   private createTerrainElements(material: THREE.ShaderMaterial): void {
-    // Add scattered platform pieces at different levels - spread across larger area
-    for (let i = 0; i < 40; i++) { // Increased from 15 to 40
+    // Add scattered platform pieces at different levels - spread across full valley
+    for (let i = 0; i < 120; i++) { // Much more platforms for full valley coverage
       const platformSize = 3 + Math.random() * 6;
       const platformHeight = 0.3 + Math.random() * 1.2;
       const platform = new THREE.Mesh(
@@ -268,9 +450,9 @@ class Killer7Scene {
       );
 
       platform.position.set(
-        (Math.random() - 0.5) * 350, // Increased spread for mountainous terrain
+        (Math.random() - 0.5) * 1400, // Spread across full expanded terrain
         platformHeight / 2 + Math.random() * 3,
-        (Math.random() - 0.5) * 350  // Increased spread for mountainous terrain
+        (Math.random() - 0.5) * 1400  // Spread across full expanded terrain
       );
       platform.rotation.y = Math.random() * Math.PI;
       platform.castShadow = true;
@@ -279,8 +461,8 @@ class Killer7Scene {
       this.geometryObjects.push(platform);
     }
 
-    // Create elevated areas with steps - more scattered across larger space
-    for (let i = 0; i < 20; i++) { // Increased from 8 to 20
+    // Create elevated areas with steps - scattered across full valley
+    for (let i = 0; i < 60; i++) { // Many more step areas for full coverage
       const stepCount = 3 + Math.floor(Math.random() * 5);
       const stepWidth = 2 + Math.random() * 3;
 
@@ -290,8 +472,8 @@ class Killer7Scene {
           material
         );
 
-        const baseX = (Math.random() - 0.5) * 300; // Increased for larger terrain
-        const baseZ = (Math.random() - 0.5) * 300; // Increased for larger terrain
+        const baseX = (Math.random() - 0.5) * 1200; // Spread across expanded terrain
+        const baseZ = (Math.random() - 0.5) * 1200; // Spread across expanded terrain
 
         step.position.set(
           baseX,
@@ -305,8 +487,8 @@ class Killer7Scene {
       }
     }
 
-    // Add some larger landmark structures across the expanded terrain
-    for (let i = 0; i < 12; i++) {
+    // Add many larger landmark structures across the full expanded terrain
+    for (let i = 0; i < 40; i++) { // Much more landmarks for full valley
       const landmarkTypes = [
         new THREE.BoxGeometry(8, 6, 8),          // Large blocks
         new THREE.CylinderGeometry(3, 3, 8, 8),  // Towers
@@ -318,9 +500,9 @@ class Killer7Scene {
       const landmark = new THREE.Mesh(geometry, material);
 
       landmark.position.set(
-        (Math.random() - 0.5) * 320, // Spread across mountainous terrain
+        (Math.random() - 0.5) * 1300, // Spread across full expanded terrain
         3 + Math.random() * 4,
-        (Math.random() - 0.5) * 320
+        (Math.random() - 0.5) * 1300
       );
 
       landmark.rotation.y = Math.random() * Math.PI;
@@ -332,17 +514,20 @@ class Killer7Scene {
 
     // Add vertical stacks of rectangles for dramatic verticality
     this.createVerticalStacks(material);
+
+    // Add ground panels to break up empty white spaces
+    this.createGroundPanels(material);
   }
 
   private createVerticalStacks(material: THREE.ShaderMaterial): void {
-    // Create irregular piles of rectangular blocks
-    for (let pile = 0; pile < 30; pile++) {
+    // Create irregular piles of rectangular blocks across full valley
+    for (let pile = 0; pile < 80; pile++) { // More piles for full coverage
       const pileSize = 8 + Math.floor(Math.random() * 15); // 8-22 blocks per pile
       const baseSize = 2 + Math.random() * 4;
 
-      // Pile center position
-      const pileX = (Math.random() - 0.5) * 300;
-      const pileZ = (Math.random() - 0.5) * 300;
+      // Pile center position across expanded terrain
+      const pileX = (Math.random() - 0.5) * 1200;
+      const pileZ = (Math.random() - 0.5) * 1200;
 
       // Create irregular pile with blocks scattered around center
       for (let block = 0; block < pileSize; block++) {
@@ -384,13 +569,13 @@ class Killer7Scene {
       }
     }
 
-    // Create some extremely tall spire-like stacks
-    for (let spire = 0; spire < 8; spire++) {
+    // Create some extremely tall spire-like stacks across expanded valley
+    for (let spire = 0; spire < 25; spire++) { // More spires for full coverage
       const spireHeight = 15 + Math.floor(Math.random() * 20); // Very tall
       const baseSize = 1.5 + Math.random() * 2;
 
-      const spireX = (Math.random() - 0.5) * 250;
-      const spireZ = (Math.random() - 0.5) * 250;
+      const spireX = (Math.random() - 0.5) * 1100;
+      const spireZ = (Math.random() - 0.5) * 1100;
 
       let currentHeight = 0;
 
@@ -423,13 +608,13 @@ class Killer7Scene {
       }
     }
 
-    // Create some stepped pyramid-like structures
-    for (let pyramid = 0; pyramid < 6; pyramid++) {
+    // Create some stepped pyramid-like structures across full valley
+    for (let pyramid = 0; pyramid < 20; pyramid++) { // More pyramids for full coverage
       const levels = 4 + Math.floor(Math.random() * 6);
       const baseSize = 6 + Math.random() * 4;
 
-      const pyramidX = (Math.random() - 0.5) * 280;
-      const pyramidZ = (Math.random() - 0.5) * 280;
+      const pyramidX = (Math.random() - 0.5) * 1000;
+      const pyramidZ = (Math.random() - 0.5) * 1000;
 
       for (let level = 0; level < levels; level++) {
         const levelSize = baseSize * (1 - level / levels * 0.7);
@@ -455,6 +640,112 @@ class Killer7Scene {
       }
     }
   }
+
+  private createGroundPanels(material: THREE.ShaderMaterial): void {
+    // Create angular ground structures - more architectural and less flat
+
+    // 1. Angular ground structures - tilted rectangular blocks
+    for (let i = 0; i < 60; i++) {
+      const structureWidth = 15 + Math.random() * 25;
+      const structureDepth = 12 + Math.random() * 20;
+      const structureHeight = 2 + Math.random() * 4; // Much taller for angular look
+
+      const structure = new THREE.Mesh(
+        new THREE.BoxGeometry(structureWidth, structureHeight, structureDepth),
+        material
+      );
+
+      structure.position.set(
+        (Math.random() - 0.5) * 1300,
+        structureHeight / 2,
+        (Math.random() - 0.5) * 1300
+      );
+
+      // Add dramatic angular rotations
+      structure.rotation.set(
+        (Math.random() - 0.5) * 0.6, // Tilt forward/back
+        Math.random() * Math.PI,     // Rotate around Y
+        (Math.random() - 0.5) * 0.4  // Tilt left/right
+      );
+
+      structure.castShadow = true;
+      structure.receiveShadow = true;
+      this.scene.add(structure);
+      this.geometryObjects.push(structure);
+    }
+
+    // 2. Elevated angular platforms - dramatic geometric shapes
+    for (let i = 0; i < 45; i++) {
+      const platformTypes = [
+        new THREE.BoxGeometry(
+          8 + Math.random() * 15,
+          1.5 + Math.random() * 3,
+          6 + Math.random() * 12
+        ),
+        new THREE.CylinderGeometry(
+          6 + Math.random() * 8,
+          4 + Math.random() * 6,
+          2 + Math.random() * 4,
+          8
+        ),
+        new THREE.ConeGeometry(
+          8 + Math.random() * 6,
+          3 + Math.random() * 3,
+          6
+        )
+      ];
+
+      const geometry = platformTypes[Math.floor(Math.random() * platformTypes.length)];
+      const platform = new THREE.Mesh(geometry, material);
+
+      platform.position.set(
+        (Math.random() - 0.5) * 1300,
+        1 + Math.random() * 2,
+        (Math.random() - 0.5) * 1300
+      );
+
+      platform.rotation.set(
+        (Math.random() - 0.5) * 0.5,
+        Math.random() * Math.PI,
+        (Math.random() - 0.5) * 0.3
+      );
+
+      platform.castShadow = true;
+      platform.receiveShadow = true;
+      this.scene.add(platform);
+      this.geometryObjects.push(platform);
+    }
+
+    // 3. Geometric ground fragments - varied angular pieces
+    for (let i = 0; i < 35; i++) {
+      const fragmentTypes = [
+        new THREE.BoxGeometry(5 + Math.random() * 8, 0.8 + Math.random() * 1.5, 5 + Math.random() * 8),
+        new THREE.TetrahedronGeometry(4 + Math.random() * 4),
+        new THREE.OctahedronGeometry(3 + Math.random() * 3)
+      ];
+
+      const geometry = fragmentTypes[Math.floor(Math.random() * fragmentTypes.length)];
+      const fragment = new THREE.Mesh(geometry, material);
+
+      fragment.position.set(
+        (Math.random() - 0.5) * 1300,
+        0.5 + Math.random() * 1,
+        (Math.random() - 0.5) * 1300
+      );
+
+      fragment.rotation.set(
+        Math.random() * Math.PI,
+        Math.random() * Math.PI,
+        Math.random() * Math.PI
+      );
+
+      fragment.castShadow = true;
+      fragment.receiveShadow = true;
+      this.scene.add(fragment);
+      this.geometryObjects.push(fragment);
+    }
+  }
+
 
   private createScene(): void {
     // Create binary toon material
@@ -492,20 +783,69 @@ class Killer7Scene {
     light.shadow.mapSize.width = 2048;
     light.shadow.mapSize.height = 2048;
     light.shadow.camera.near = 1;
-    light.shadow.camera.far = 800; // Much larger for full terrain coverage
-    light.shadow.camera.left = -400; // Massive shadow coverage
-    light.shadow.camera.right = 400;
-    light.shadow.camera.top = 400;
-    light.shadow.camera.bottom = -400;
+    light.shadow.camera.far = 1600; // Much larger for full expanded terrain coverage
+    light.shadow.camera.left = -800; // Massive shadow coverage for expanded terrain
+    light.shadow.camera.right = 800;
+    light.shadow.camera.top = 800;
+    light.shadow.camera.bottom = -800;
     this.scene.add(light);
 
-    // NO ambient light for pure blacks
+    // Add subtle ambient light to ensure visibility from all angles
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+    this.scene.add(ambientLight);
 
     // Add background architecture
     this.createBackground();
 
     // Add floating animated objects
     this.createFloatingObjects();
+
+    // Add soft black particles
+    this.createParticleSystem();
+  }
+
+  private createParticleSystem(): void {
+    // Create soft, fuzzy black particles
+    const particleCount = 1000;
+    const particleGeometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    const velocities = new Float32Array(particleCount * 3);
+
+    // Initialize particle positions and velocities
+    for (let i = 0; i < particleCount; i++) {
+      const i3 = i * 3;
+
+      // Spread particles throughout the expanded valley
+      positions[i3] = (Math.random() - 0.5) * 1600;     // X
+      positions[i3 + 1] = Math.random() * 200;          // Y (height)
+      positions[i3 + 2] = (Math.random() - 0.5) * 1600; // Z
+
+      // Faster downward drift with some randomness
+      velocities[i3] = (Math.random() - 0.5) * 0.4;     // X velocity
+      velocities[i3 + 1] = -0.5 - Math.random() * 1.0;  // Y velocity (falling much faster)
+      velocities[i3 + 2] = (Math.random() - 0.5) * 0.4; // Z velocity
+    }
+
+    particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    particleGeometry.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
+
+    // Create soft, fuzzy light gray particle material
+    const particleMaterial = new THREE.PointsMaterial({
+      color: 0x808080,        // Light gray for soft appearance
+      size: 5.0,              // Large particles for visibility
+      transparent: true,
+      opacity: 0.5,           // More transparent for lighter feel
+      blending: THREE.NormalBlending, // Normal blending
+      sizeAttenuation: true,  // Size changes with distance
+      vertexColors: false
+    });
+
+    const particles = new THREE.Points(particleGeometry, particleMaterial);
+    this.scene.add(particles);
+
+    // Store references for animation
+    this.particles = particles;
+    this.particleVelocities = velocities;
   }
 
   private createBackground(): void {
@@ -573,13 +913,13 @@ class Killer7Scene {
     // Ring 1: Outer ring of cubes (radius 25, high altitude)
     const cubeCount = 8;
     const cubeRadius = 25;
-    const baseHeight = 35; // Much higher floating height
+    const baseHeight = 50; // Even higher floating height
     for (let i = 0; i < cubeCount; i++) {
       const angle = (i / cubeCount) * Math.PI * 2;
       const cube = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), debrisMaterial);
       cube.position.set(
         Math.cos(angle) * cubeRadius,
-        baseHeight + Math.sin(i * 0.5) * 4, // Higher with more variation
+        baseHeight + Math.sin(i * 0.5) * 6, // Higher with more variation
         Math.sin(angle) * cubeRadius
       );
       cube.castShadow = true;
@@ -597,7 +937,7 @@ class Killer7Scene {
       const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.8, 8, 6), debrisMaterial);
       sphere.position.set(
         Math.cos(angle) * sphereRadius,
-        baseHeight - 2 + Math.cos(i * 0.8) * 3, // Slightly lower than cubes
+        baseHeight + 3 + Math.cos(i * 0.8) * 4, // Higher than before
         Math.sin(angle) * sphereRadius
       );
       sphere.castShadow = true;
@@ -615,7 +955,7 @@ class Killer7Scene {
       const pyramid = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.8, 4), debrisMaterial);
       pyramid.position.set(
         Math.cos(angle) * pyramidRadius,
-        baseHeight - 5 + Math.sin(i * 1.2) * 2, // Lower than spheres
+        baseHeight + 8 + Math.sin(i * 1.2) * 3, // Higher than spheres
         Math.sin(angle) * pyramidRadius
       );
       pyramid.castShadow = true;
@@ -640,7 +980,7 @@ class Killer7Scene {
       // Random positions around the diamond at high altitude
       const angle = Math.random() * Math.PI * 2;
       const radius = 6 + Math.random() * 20;
-      const height = baseHeight + 8 + (Math.random() - 0.5) * 12;
+      const height = baseHeight + 15 + (Math.random() - 0.5) * 15;
 
       debris.position.set(
         Math.cos(angle) * radius,
@@ -664,7 +1004,7 @@ class Killer7Scene {
     // Central focal point - massive floating diamond
     const diamondMaterial = this.createDiamondMaterial();
     const centerPiece = this.createHalfDiamond(4, diamondMaterial); // Much larger
-    centerPiece.position.set(0, baseHeight + 8, 0); // High in the sky
+    centerPiece.position.set(0, baseHeight + 15, 0); // Higher in the sky
     centerPiece.castShadow = true;
     centerPiece.receiveShadow = true;
     centerPiece.userData = { diamondIndex: 0 }; // Mark as clickable diamond
@@ -673,8 +1013,156 @@ class Killer7Scene {
     this.animatedObjects.push(centerPiece);
     this.diamonds.push(centerPiece);
 
+    // Add structures underneath the central diamond
+    this.createCenterStructures(material, debrisMaterial);
+
     // Additional floating diamonds with their own debris fields
     this.createAdditionalDiamonds(material, debrisMaterial, baseHeight);
+  }
+
+  private createCenterStructures(material: THREE.ShaderMaterial, debrisMaterial: THREE.MeshBasicMaterial): void {
+    // Create architectural structures underneath the central diamond
+
+    // 1. Central pedestal platform
+    const pedestal = new THREE.Mesh(
+      new THREE.CylinderGeometry(8, 12, 6, 8),
+      material
+    );
+    pedestal.position.set(0, 3, 0);
+    pedestal.castShadow = true;
+    pedestal.receiveShadow = true;
+    this.scene.add(pedestal);
+    this.geometryObjects.push(pedestal);
+
+    // 2. Surrounding angular support structures
+    const supportCount = 6;
+    for (let i = 0; i < supportCount; i++) {
+      const angle = (i / supportCount) * Math.PI * 2;
+      const radius = 15 + Math.random() * 5;
+
+      const supportTypes = [
+        new THREE.BoxGeometry(3 + Math.random() * 2, 8 + Math.random() * 6, 3 + Math.random() * 2),
+        new THREE.ConeGeometry(2 + Math.random() * 1.5, 10 + Math.random() * 5, 6),
+        new THREE.CylinderGeometry(1.5, 3, 12 + Math.random() * 4, 8)
+      ];
+
+      const geometry = supportTypes[Math.floor(Math.random() * supportTypes.length)];
+      const support = new THREE.Mesh(geometry, material);
+
+      support.position.set(
+        Math.cos(angle) * radius,
+        5 + Math.random() * 3,
+        Math.sin(angle) * radius
+      );
+
+      support.rotation.set(
+        (Math.random() - 0.5) * 0.3,
+        angle + (Math.random() - 0.5) * 0.5,
+        (Math.random() - 0.5) * 0.2
+      );
+
+      support.castShadow = true;
+      support.receiveShadow = true;
+      this.scene.add(support);
+      this.geometryObjects.push(support);
+    }
+
+    // 3. Ground-level angular structures radiating from center
+    const groundStructureCount = 12;
+    for (let i = 0; i < groundStructureCount; i++) {
+      const angle = (i / groundStructureCount) * Math.PI * 2;
+      const radius = 8 + Math.random() * 12;
+
+      const structure = new THREE.Mesh(
+        new THREE.BoxGeometry(
+          2 + Math.random() * 3,
+          1 + Math.random() * 2,
+          6 + Math.random() * 4
+        ),
+        material
+      );
+
+      structure.position.set(
+        Math.cos(angle) * radius,
+        0.5 + Math.random() * 0.5,
+        Math.sin(angle) * radius
+      );
+
+      structure.rotation.set(
+        (Math.random() - 0.5) * 0.4,
+        angle + (Math.random() - 0.5) * 0.3,
+        (Math.random() - 0.5) * 0.2
+      );
+
+      structure.castShadow = true;
+      structure.receiveShadow = true;
+      this.scene.add(structure);
+      this.geometryObjects.push(structure);
+    }
+
+    // 4. Elevated black debris platforms around center
+    const platformCount = 8;
+    for (let i = 0; i < platformCount; i++) {
+      const angle = (i / platformCount) * Math.PI * 2 + Math.random() * 0.5;
+      const radius = 20 + Math.random() * 10;
+
+      const platform = new THREE.Mesh(
+        new THREE.BoxGeometry(
+          4 + Math.random() * 3,
+          0.3 + Math.random() * 0.4,
+          4 + Math.random() * 3
+        ),
+        debrisMaterial
+      );
+
+      platform.position.set(
+        Math.cos(angle) * radius,
+        2 + Math.random() * 3,
+        Math.sin(angle) * radius
+      );
+
+      platform.rotation.set(
+        (Math.random() - 0.5) * 0.3,
+        Math.random() * Math.PI,
+        (Math.random() - 0.5) * 0.2
+      );
+
+      platform.castShadow = true;
+      platform.receiveShadow = true;
+      this.scene.add(platform);
+      this.geometryObjects.push(platform);
+    }
+
+    // 5. Connecting bridge elements
+    const bridgeCount = 4;
+    for (let i = 0; i < bridgeCount; i++) {
+      const angle = (i / bridgeCount) * Math.PI * 2;
+      const startRadius = 12;
+      const endRadius = 25;
+
+      const bridge = new THREE.Mesh(
+        new THREE.BoxGeometry(
+          endRadius - startRadius,
+          0.5,
+          1.5 + Math.random() * 1
+        ),
+        material
+      );
+
+      const midRadius = (startRadius + endRadius) / 2;
+      bridge.position.set(
+        Math.cos(angle) * midRadius,
+        2.5 + Math.random() * 1,
+        Math.sin(angle) * midRadius
+      );
+
+      bridge.rotation.y = angle;
+
+      bridge.castShadow = true;
+      bridge.receiveShadow = true;
+      this.scene.add(bridge);
+      this.geometryObjects.push(bridge);
+    }
   }
 
   private createAdditionalDiamonds(material: THREE.ShaderMaterial, debrisMaterial: THREE.MeshBasicMaterial, baseHeight: number): void {
@@ -777,6 +1265,93 @@ class Killer7Scene {
         this.animatedObjects.push(orbital);
       }
     });
+
+    // Add special structures under all diamonds
+    diamondPositions.forEach((pos, index) => {
+      this.createDiamondStructures(material, debrisMaterial, pos, index);
+    });
+  }
+
+  private createDiamondStructures(material: THREE.ShaderMaterial, debrisMaterial: THREE.MeshBasicMaterial, position: { x: number, z: number, height: number }, diamondIndex: number): void {
+    // Create consistent debris piles under each diamond
+    this.createDebrisPile(material, debrisMaterial, position);
+  }
+
+  private createDebrisPile(material: THREE.ShaderMaterial, debrisMaterial: THREE.MeshBasicMaterial, position: { x: number, z: number, height: number }): void {
+    // Create debris pile like the original ground structures
+    const pileSize = 8 + Math.floor(Math.random() * 10); // 8-17 blocks per pile
+    const baseSize = 3 + Math.random() * 2;
+
+    // Create irregular pile with blocks scattered around center
+    for (let block = 0; block < pileSize; block++) {
+      // Varied block dimensions
+      const blockWidth = baseSize + (Math.random() - 0.5) * 2;
+      const blockHeight = 1 + Math.random() * 3;
+      const blockDepth = baseSize + (Math.random() - 0.5) * 2;
+
+      const pileBlock = new THREE.Mesh(
+        new THREE.BoxGeometry(blockWidth, blockHeight, blockDepth),
+        Math.random() > 0.6 ? debrisMaterial : material
+      );
+
+      // Random scatter around pile center
+      const scatterRadius = Math.random() * 6;
+      const scatterAngle = Math.random() * Math.PI * 2;
+      const scatterX = Math.cos(scatterAngle) * scatterRadius;
+      const scatterZ = Math.sin(scatterAngle) * scatterRadius;
+
+      // Height based on distance from center (pile effect) with randomness
+      const distanceFromCenter = Math.sqrt(scatterX * scatterX + scatterZ * scatterZ);
+      const pileHeight = Math.max(0, (6 - distanceFromCenter) * 1.5 + Math.random() * 2);
+
+      pileBlock.position.set(
+        position.x + scatterX,
+        pileHeight + blockHeight / 2,
+        position.z + scatterZ
+      );
+
+      // Random rotations for chaotic look
+      pileBlock.rotation.x = (Math.random() - 0.5) * 0.4;
+      pileBlock.rotation.y = Math.random() * Math.PI;
+      pileBlock.rotation.z = (Math.random() - 0.5) * 0.3;
+
+      pileBlock.castShadow = true;
+      pileBlock.receiveShadow = true;
+      this.scene.add(pileBlock);
+      this.geometryObjects.push(pileBlock);
+    }
+
+    // Add a few larger platform pieces around each pile
+    for (let i = 0; i < 3; i++) {
+      const angle = (i / 3) * Math.PI * 2 + Math.random() * 0.5;
+      const radius = 8 + Math.random() * 4;
+
+      const platform = new THREE.Mesh(
+        new THREE.BoxGeometry(
+          4 + Math.random() * 3,
+          0.5 + Math.random() * 0.8,
+          3 + Math.random() * 2
+        ),
+        material
+      );
+
+      platform.position.set(
+        position.x + Math.cos(angle) * radius,
+        0.3 + Math.random() * 0.5,
+        position.z + Math.sin(angle) * radius
+      );
+
+      platform.rotation.set(
+        (Math.random() - 0.5) * 0.3,
+        Math.random() * Math.PI,
+        (Math.random() - 0.5) * 0.2
+      );
+
+      platform.castShadow = true;
+      platform.receiveShadow = true;
+      this.scene.add(platform);
+      this.geometryObjects.push(platform);
+    }
   }
 
   private createBinaryToonMaterial(): THREE.ShaderMaterial {
@@ -803,9 +1378,43 @@ class Killer7Scene {
           vec3 normal = normalize(vNormal);
           float NdotL = max(dot(normal, lightDirection), 0.0);
 
-          // Binary step - but with grayer tones for both dark and light
+          // Binary step with better contrast against light gray background
           float shade = step(0.5, NdotL);
-          vec3 color = mix(vec3(0.2), vec3(0.85), shade);  // Dark gray to light gray
+          vec3 color = mix(vec3(0.1), vec3(0.9), shade);  // Darker contrast for visibility
+
+          gl_FragColor = vec4(color, 1.0);
+        }
+      `
+    });
+  }
+
+  private createMountainMaterial(): THREE.ShaderMaterial {
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        lightDirection: { value: new THREE.Vector3(5, 10, 5).normalize() }
+      },
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 lightDirection;
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+
+        void main() {
+          vec3 normal = normalize(vNormal);
+          float NdotL = max(dot(normal, lightDirection), 0.0);
+
+          // Binary step with grayer colors for mountains
+          float shade = step(0.5, NdotL);
+          vec3 color = mix(vec3(0.4), vec3(0.9), shade);  // Gray instead of very dark for mountains
 
           gl_FragColor = vec4(color, 1.0);
         }
@@ -1107,6 +1716,34 @@ class Killer7Scene {
           this.diamonds[diamondIndex].rotation.y = time * 2.0; // Spin around Y axis
         }
       });
+
+      // Animate particles
+      if (this.particles && this.particleVelocities) {
+        const positions = this.particles.geometry.attributes.position.array as Float32Array;
+        const particleCount = positions.length / 3;
+
+        for (let i = 0; i < particleCount; i++) {
+          const i3 = i * 3;
+
+          // Update positions based on velocities
+          positions[i3] += this.particleVelocities[i3] * 1.0;         // X
+          positions[i3 + 1] += this.particleVelocities[i3 + 1] * 1.0; // Y
+          positions[i3 + 2] += this.particleVelocities[i3 + 2] * 1.0; // Z
+
+          // Reset particles that fall below ground or drift too far
+          if (positions[i3 + 1] < -10 ||
+              Math.abs(positions[i3]) > 900 ||
+              Math.abs(positions[i3 + 2]) > 900) {
+
+            // Reset to top of scene
+            positions[i3] = (Math.random() - 0.5) * 1600;
+            positions[i3 + 1] = 180 + Math.random() * 20;
+            positions[i3 + 2] = (Math.random() - 0.5) * 1600;
+          }
+        }
+
+        this.particles.geometry.attributes.position.needsUpdate = true;
+      }
     }
 
     this.controls.update();
