@@ -99,6 +99,9 @@ class Killer7Scene {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x000000); // Black background
 
+    // Add white ground plane with toon shading (created after materials are available)
+    // This will be added in createSceneAsync after materials are set up
+
     // Camera - updated for much larger terrain with better culling
     this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
     // Start with a different position for the animation to work
@@ -161,7 +164,7 @@ class Killer7Scene {
 
     // Animation toggle controls and camera switching
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' || e.key === 'q' || e.key === 'Q') {
+      if (e.key === 'Escape' || e.key === 'r' || e.key === 'R') {
         this.resetToOverview();
       } else if (e.key === 'p' || e.key === 'P') {
         // Toggle play/pause for currently selected track
@@ -923,6 +926,10 @@ class Killer7Scene {
 
     await this.yieldToMain();
 
+    // Add white ground plane with toon shading
+    this.createWhiteGroundPlane(material);
+    await this.yieldToMain();
+
     // Add background architecture
     this.createBackground();
     await this.yieldToMain();
@@ -940,6 +947,48 @@ class Killer7Scene {
     return new Promise(resolve => {
       setTimeout(resolve, 0);
     });
+  }
+
+  private createWhiteGroundPlane(material: THREE.ShaderMaterial): void {
+    // Create inverted toon material for white ground (bright base, dark shadows)
+    const groundMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        lightDirection: { value: new THREE.Vector3(5, 10, 5).normalize() }
+      },
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 lightDirection;
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+
+        void main() {
+          vec3 normal = normalize(vNormal);
+          float NdotL = max(dot(normal, lightDirection), 0.0);
+
+          // Inverted toon: white base with dark shadows
+          float shade = step(0.5, NdotL);
+          vec3 color = mix(vec3(0.4), vec3(0.95), shade);  // Dark shadows to bright white
+
+          gl_FragColor = vec4(color, 1.0);
+        }
+      `
+    });
+
+    const groundGeometry = new THREE.PlaneGeometry(3000, 3000);
+    const groundPlane = new THREE.Mesh(groundGeometry, groundMaterial);
+    groundPlane.rotation.x = -Math.PI / 2;
+    groundPlane.position.y = -1;
+    groundPlane.receiveShadow = true;
+    this.scene.add(groundPlane);
   }
 
   private createOptimizedParticleSystem(): void {
@@ -1587,17 +1636,8 @@ class Killer7Scene {
         varying vec3 vPosition;
 
         void main() {
-          vec3 normal = normalize(vNormal);
-          float NdotL = max(dot(normal, lightDirection), 0.0);
-
-          // Mostly black with subtle white edge highlights
-          float edgeIntensity = 1.0 - abs(dot(normal, normalize(vPosition)));
-          float edge = pow(edgeIntensity, 3.0); // Sharp edge falloff
-
-          // Mix black base with white edges
-          vec3 color = mix(vec3(0.05), vec3(0.95), edge * 0.6);
-
-          gl_FragColor = vec4(color, 1.0);
+          // Solid black
+          gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
         }
       `
     });
