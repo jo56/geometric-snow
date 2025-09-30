@@ -829,12 +829,12 @@ class Killer7Scene {
     particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     particleGeometry.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
 
-    // Create soft, fuzzy gray particle material
+    // Create soft, fuzzy light gray particle material
     const particleMaterial = new THREE.PointsMaterial({
-      color: 0x404040,        // Medium gray for soft appearance
+      color: 0x808080,        // Light gray for soft appearance
       size: 5.0,              // Large particles for visibility
       transparent: true,
-      opacity: 0.7,           // Semi-transparent for softness
+      opacity: 0.5,           // More transparent for lighter feel
       blending: THREE.NormalBlending, // Normal blending
       sizeAttenuation: true,  // Size changes with distance
       vertexColors: false
