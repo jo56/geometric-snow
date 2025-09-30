@@ -915,6 +915,9 @@ class Killer7Scene {
     const overviewPosition = new THREE.Vector3(-80, 45, 40);
     const overviewTarget = new THREE.Vector3(30, 20, -20);
 
+    console.log('Overview Position:', overviewPosition);
+    console.log('Overview Target:', overviewTarget);
+
     this.animateToPosition(overviewPosition, overviewTarget, 2500);
     console.log('Overview camera activated');
   }
