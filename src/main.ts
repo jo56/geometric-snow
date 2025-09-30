@@ -18,6 +18,9 @@ class Killer7Scene {
   private diamonds: THREE.Mesh[] = [];
   private raycaster = new THREE.Raycaster();
   private mouse = new THREE.Vector2();
+  private spinningDiamonds = new Set<number>();
+  private currentAudio: HTMLAudioElement | null = null;
+  private currentTrack: number = -1;
 
   constructor() {
     this.init();
@@ -91,6 +94,9 @@ class Killer7Scene {
     window.addEventListener('click', (e) => {
       this.onMouseClick(e);
     });
+
+    // Music player event listeners
+    this.setupMusicPlayer();
   }
 
   private setupPostProcessing(): void {
@@ -954,6 +960,94 @@ class Killer7Scene {
     }
   }
 
+  private setupMusicPlayer(): void {
+    // Track name click handlers (camera view only)
+    document.querySelectorAll('.track-name').forEach(trackName => {
+      trackName.addEventListener('click', (e) => {
+        const diamondIndex = parseInt((e.target as HTMLElement).dataset.diamond || '0');
+        this.focusOnDiamond(diamondIndex);
+        this.updateTrackNameUI(diamondIndex);
+      });
+    });
+
+    // Play button click handlers (spinning + audio + camera view)
+    document.querySelectorAll('.play-button').forEach(playButton => {
+      playButton.addEventListener('click', (e) => {
+        const diamondIndex = parseInt((e.target as HTMLElement).dataset.diamond || '0');
+        this.toggleTrack(diamondIndex);
+      });
+    });
+  }
+
+  private updateTrackNameUI(diamondIndex: number): void {
+    // Remove active class from all track names
+    document.querySelectorAll('.track-name').forEach(el => el.classList.remove('active'));
+    // Add active class to current track name
+    document.querySelector(`.track-name[data-diamond="${diamondIndex}"]`)?.classList.add('active');
+  }
+
+  private updatePlayButtonUI(diamondIndex: number, isPlaying: boolean): void {
+    const playButton = document.querySelector(`.play-button[data-diamond="${diamondIndex}"]`) as HTMLElement;
+    if (playButton) {
+      playButton.textContent = isPlaying ? '⏸' : '▶';
+      if (isPlaying) {
+        playButton.classList.add('playing');
+      } else {
+        playButton.classList.remove('playing');
+      }
+    }
+  }
+
+  private toggleTrack(diamondIndex: number): void {
+    const audio = document.getElementById(`audio-${diamondIndex}`) as HTMLAudioElement;
+    if (!audio) return;
+
+    // If this track is already playing, pause it
+    if (this.currentTrack === diamondIndex && this.currentAudio && !this.currentAudio.paused) {
+      this.stopCurrentTrack();
+      return;
+    }
+
+    // Stop any currently playing track
+    this.stopCurrentTrack();
+
+    // Start new track
+    this.currentTrack = diamondIndex;
+    this.currentAudio = audio;
+
+    // Start spinning diamond
+    this.spinningDiamonds.add(diamondIndex);
+
+    // Focus camera on diamond
+    this.focusOnDiamond(diamondIndex);
+
+    // Update UI
+    this.updateTrackNameUI(diamondIndex);
+    this.updatePlayButtonUI(diamondIndex, true);
+
+    // Play audio
+    audio.currentTime = 0;
+    audio.play().catch(e => console.log('Audio play failed:', e));
+  }
+
+  private stopCurrentTrack(): void {
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio.currentTime = 0;
+    }
+
+    if (this.currentTrack >= 0) {
+      // Stop spinning diamond
+      this.spinningDiamonds.delete(this.currentTrack);
+
+      // Update UI
+      this.updatePlayButtonUI(this.currentTrack, false);
+    }
+
+    this.currentAudio = null;
+    this.currentTrack = -1;
+  }
+
   private animate = (): void => {
     requestAnimationFrame(this.animate);
 
@@ -980,6 +1074,13 @@ class Killer7Scene {
           obj.rotation.x = time * 0.4 + index;
           obj.rotation.y = time * 0.6 + index;
           obj.rotation.z = time * 0.2 + index;
+        }
+      });
+
+      // Animate spinning diamonds
+      this.spinningDiamonds.forEach(diamondIndex => {
+        if (this.diamonds[diamondIndex]) {
+          this.diamonds[diamondIndex].rotation.y = time * 2.0; // Spin around Y axis
         }
       });
     }
