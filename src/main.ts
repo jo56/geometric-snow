@@ -849,13 +849,13 @@ class Killer7Scene {
     // Ring 1: Outer ring of cubes (radius 25, high altitude)
     const cubeCount = 8;
     const cubeRadius = 25;
-    const baseHeight = 35; // Much higher floating height
+    const baseHeight = 50; // Even higher floating height
     for (let i = 0; i < cubeCount; i++) {
       const angle = (i / cubeCount) * Math.PI * 2;
       const cube = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), debrisMaterial);
       cube.position.set(
         Math.cos(angle) * cubeRadius,
-        baseHeight + Math.sin(i * 0.5) * 4, // Higher with more variation
+        baseHeight + Math.sin(i * 0.5) * 6, // Higher with more variation
         Math.sin(angle) * cubeRadius
       );
       cube.castShadow = true;
@@ -873,7 +873,7 @@ class Killer7Scene {
       const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.8, 8, 6), debrisMaterial);
       sphere.position.set(
         Math.cos(angle) * sphereRadius,
-        baseHeight - 2 + Math.cos(i * 0.8) * 3, // Slightly lower than cubes
+        baseHeight + 3 + Math.cos(i * 0.8) * 4, // Higher than before
         Math.sin(angle) * sphereRadius
       );
       sphere.castShadow = true;
@@ -891,7 +891,7 @@ class Killer7Scene {
       const pyramid = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.8, 4), debrisMaterial);
       pyramid.position.set(
         Math.cos(angle) * pyramidRadius,
-        baseHeight - 5 + Math.sin(i * 1.2) * 2, // Lower than spheres
+        baseHeight + 8 + Math.sin(i * 1.2) * 3, // Higher than spheres
         Math.sin(angle) * pyramidRadius
       );
       pyramid.castShadow = true;
@@ -916,7 +916,7 @@ class Killer7Scene {
       // Random positions around the diamond at high altitude
       const angle = Math.random() * Math.PI * 2;
       const radius = 6 + Math.random() * 20;
-      const height = baseHeight + 8 + (Math.random() - 0.5) * 12;
+      const height = baseHeight + 15 + (Math.random() - 0.5) * 15;
 
       debris.position.set(
         Math.cos(angle) * radius,
@@ -940,7 +940,7 @@ class Killer7Scene {
     // Central focal point - massive floating diamond
     const diamondMaterial = this.createDiamondMaterial();
     const centerPiece = this.createHalfDiamond(4, diamondMaterial); // Much larger
-    centerPiece.position.set(0, baseHeight + 8, 0); // High in the sky
+    centerPiece.position.set(0, baseHeight + 15, 0); // Higher in the sky
     centerPiece.castShadow = true;
     centerPiece.receiveShadow = true;
     centerPiece.userData = { diamondIndex: 0 }; // Mark as clickable diamond
