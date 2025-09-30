@@ -879,6 +879,10 @@ class Killer7Scene {
     // Create scene in chunks with yield points for loading progress
     await this.yieldToMain();
 
+    // Add stars to black background first (render order)
+    this.createStars();
+    await this.yieldToMain();
+
     // Create massive mountainous terrain
     this.createTerrain(material);
     await this.yieldToMain();
@@ -947,6 +951,41 @@ class Killer7Scene {
     return new Promise(resolve => {
       setTimeout(resolve, 0);
     });
+  }
+
+  private createStars(): void {
+    // Create small static stars in the black background
+    const starCount = 800;
+    const starGeometry = new THREE.BufferGeometry();
+    const starPositions = new Float32Array(starCount * 3);
+
+    for (let i = 0; i < starCount; i++) {
+      const i3 = i * 3;
+
+      // Random positions in a large sphere around the scene
+      const radius = 1200 + Math.random() * 400; // Far away, beyond mountains
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.random() * Math.PI * 0.7; // Concentrated in upper hemisphere
+
+      starPositions[i3] = radius * Math.sin(phi) * Math.cos(theta);
+      starPositions[i3 + 1] = Math.abs(radius * Math.cos(phi)); // Keep above horizon
+      starPositions[i3 + 2] = radius * Math.sin(phi) * Math.sin(theta);
+    }
+
+    starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+
+    const starMaterial = new THREE.PointsMaterial({
+      color: 0xffffff,
+      size: 4.0,
+      sizeAttenuation: false, // Disable size attenuation so depth doesn't affect rendering
+      transparent: false,
+      depthTest: true,
+      depthWrite: false
+    });
+
+    const stars = new THREE.Points(starGeometry, starMaterial);
+    stars.renderOrder = -1; // Render stars first
+    this.scene.add(stars);
   }
 
   private createWhiteGroundPlane(material: THREE.ShaderMaterial): void {
@@ -1603,7 +1642,9 @@ class Killer7Scene {
 
           gl_FragColor = vec4(color, 1.0);
         }
-      `
+      `,
+      depthWrite: true,
+      depthTest: true
     });
   }
 
@@ -1708,15 +1749,20 @@ class Killer7Scene {
     geometry.setIndex(indices);
     geometry.computeVertexNormals();
 
-    // Create solid black material
-    const blackMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+    // Create solid black material with white wireframe
+    const blackMaterial = new THREE.MeshBasicMaterial({
+      color: 0x000000,
+      polygonOffset: true,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1
+    });
     const mesh = new THREE.Mesh(geometry, blackMaterial);
 
-    // Add white edges
-    const edges = new THREE.EdgesGeometry(geometry, 1);
-    const edgeMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
-    const edgeLines = new THREE.LineSegments(edges, edgeMaterial);
-    mesh.add(edgeLines);
+    // Add white wireframe for edges (using WireframeGeometry for all edges)
+    const wireframe = new THREE.WireframeGeometry(geometry);
+    const wireframeMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 1 });
+    const wireframeLines = new THREE.LineSegments(wireframe, wireframeMaterial);
+    mesh.add(wireframeLines);
 
     return mesh;
   }
