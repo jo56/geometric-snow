@@ -14,6 +14,7 @@ class Killer7Scene {
   private geometryObjects: THREE.Object3D[] = [];
   private animatedObjects: THREE.Object3D[] = [];
   private clock = new THREE.Clock();
+  private animationPaused = false;
 
   constructor() {
     this.init();
@@ -51,6 +52,13 @@ class Killer7Scene {
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(window.innerWidth, window.innerHeight);
       this.composer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Animation toggle controls
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'p' || e.key === 'P') {
+        this.toggleAnimation();
+      }
     });
   }
 
@@ -271,33 +279,40 @@ class Killer7Scene {
     });
   }
 
+  private toggleAnimation(): void {
+    this.animationPaused = !this.animationPaused;
+    console.log(`Animation ${this.animationPaused ? 'paused' : 'resumed'}`);
+  }
+
   private animate = (): void => {
     requestAnimationFrame(this.animate);
 
-    const time = this.clock.getElapsedTime();
+    if (!this.animationPaused) {
+      const time = this.clock.getElapsedTime();
 
-    // Animate floating objects
-    this.animatedObjects.forEach((obj, index) => {
-      if (obj.geometry.type === 'BoxGeometry') {
-        // Spinning cubes
-        obj.rotation.x = time * 0.5 + index;
-        obj.rotation.y = time * 0.7 + index;
-        obj.position.y += Math.sin(time * 1.5 + index * 2) * 0.01;
-      } else if (obj.geometry.type === 'SphereGeometry') {
-        // Floating spheres - slow bob
-        obj.position.y += Math.sin(time * 0.8 + index * 3) * 0.02;
-        obj.rotation.z = time * 0.3 + index;
-      } else if (obj.geometry.type === 'ConeGeometry') {
-        // Pyramids - rotate and slight movement
-        obj.rotation.y = time * 1.2 + index;
-        obj.position.x += Math.sin(time * 0.6 + index * 4) * 0.01;
-      } else if (obj.geometry.type === 'TorusGeometry') {
-        // Rings - complex rotation
-        obj.rotation.x = time * 0.4 + index;
-        obj.rotation.y = time * 0.6 + index;
-        obj.rotation.z = time * 0.2 + index;
-      }
-    });
+      // Animate floating objects
+      this.animatedObjects.forEach((obj, index) => {
+        if (obj.geometry.type === 'BoxGeometry') {
+          // Spinning cubes
+          obj.rotation.x = time * 0.5 + index;
+          obj.rotation.y = time * 0.7 + index;
+          obj.position.y += Math.sin(time * 1.5 + index * 2) * 0.01;
+        } else if (obj.geometry.type === 'SphereGeometry') {
+          // Floating spheres - slow bob
+          obj.position.y += Math.sin(time * 0.8 + index * 3) * 0.02;
+          obj.rotation.z = time * 0.3 + index;
+        } else if (obj.geometry.type === 'ConeGeometry') {
+          // Pyramids - rotate and slight movement
+          obj.rotation.y = time * 1.2 + index;
+          obj.position.x += Math.sin(time * 0.6 + index * 4) * 0.01;
+        } else if (obj.geometry.type === 'TorusGeometry') {
+          // Rings - complex rotation
+          obj.rotation.x = time * 0.4 + index;
+          obj.rotation.y = time * 0.6 + index;
+          obj.rotation.z = time * 0.2 + index;
+        }
+      });
+    }
 
     this.controls.update();
     this.composer.render();
