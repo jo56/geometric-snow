@@ -142,6 +142,28 @@
     </style>
   </head>
   <body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #f8f8f8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    ">
+      <div style="font-size: 24px; font-weight: bold; margin-bottom: 20px; color: #000;">Loading Scene...</div>
+      <div style="width: 200px; height: 4px; background: #ddd; border-radius: 2px; overflow: hidden;">
+        <div id="loading-bar" style="width: 0%; height: 100%; background: #000; transition: width 0.3s ease;"></div>
+      </div>
+      <div id="loading-text" style="margin-top: 10px; color: #666; font-size: 14px;">Initializing...</div>
+    </div>
+
     <div id="app">
       <div id="music-player">
         <div class="track">
