@@ -15,6 +15,9 @@ class Killer7Scene {
   private animatedObjects: THREE.Object3D[] = [];
   private clock = new THREE.Clock();
   private animationPaused = false;
+  private diamonds: THREE.Mesh[] = [];
+  private raycaster = new THREE.Raycaster();
+  private mouse = new THREE.Vector2();
 
   constructor() {
     this.init();
@@ -68,11 +71,18 @@ class Killer7Scene {
       this.composer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // Animation toggle controls
+    // Animation toggle controls and camera switching
     window.addEventListener('keydown', (e) => {
       if (e.key === 'p' || e.key === 'P') {
         this.toggleAnimation();
+      } else if (e.key === 'Escape') {
+        this.setOverviewCamera();
       }
+    });
+
+    // Mouse click detection for diamonds
+    window.addEventListener('click', (e) => {
+      this.onMouseClick(e);
     });
   }
 
@@ -639,9 +649,11 @@ class Killer7Scene {
     centerPiece.position.set(0, baseHeight + 8, 0); // High in the sky
     centerPiece.castShadow = true;
     centerPiece.receiveShadow = true;
+    centerPiece.userData = { diamondIndex: 0 }; // Mark as clickable diamond
     this.scene.add(centerPiece);
     this.geometryObjects.push(centerPiece);
     this.animatedObjects.push(centerPiece);
+    this.diamonds.push(centerPiece);
 
     // Additional floating diamonds with their own debris fields
     this.createAdditionalDiamonds(material, baseHeight);
@@ -665,9 +677,11 @@ class Killer7Scene {
       diamond.position.set(pos.x, pos.height, pos.z);
       diamond.castShadow = true;
       diamond.receiveShadow = true;
+      diamond.userData = { diamondIndex: index + 1 }; // Mark as clickable diamond
       this.scene.add(diamond);
       this.geometryObjects.push(diamond);
       this.animatedObjects.push(diamond);
+      this.diamonds.push(diamond);
 
       // Create debris field around each diamond
       const debrisCount = 8 + Math.floor(Math.random() * 7); // 8-14 debris pieces per diamond
@@ -783,6 +797,84 @@ class Killer7Scene {
   private toggleAnimation(): void {
     this.animationPaused = !this.animationPaused;
     console.log(`Animation ${this.animationPaused ? 'paused' : 'resumed'}`);
+  }
+
+  private onMouseClick(event: MouseEvent): void {
+    // Calculate mouse position in normalized device coordinates
+    this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    // Update the raycaster with camera and mouse position
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+
+    // Check for intersections with diamonds
+    const intersects = this.raycaster.intersectObjects(this.diamonds);
+
+    if (intersects.length > 0) {
+      const clickedDiamond = intersects[0].object as THREE.Mesh;
+      const diamondIndex = clickedDiamond.userData.diamondIndex;
+      this.focusOnDiamond(diamondIndex);
+    }
+  }
+
+  private focusOnDiamond(diamondIndex: number): void {
+    if (diamondIndex < 0 || diamondIndex >= this.diamonds.length) return;
+
+    const diamond = this.diamonds[diamondIndex];
+    const diamondPos = diamond.position;
+
+    // Calculate camera position for dramatic angle
+    const offset = 15; // Distance from diamond
+    const height = 8; // Height above diamond
+
+    // Create different angles for each diamond
+    const angleOffset = diamondIndex * (Math.PI / 3); // Different angle for each diamond
+    const cameraPosition = new THREE.Vector3(
+      diamondPos.x + Math.cos(angleOffset) * offset,
+      diamondPos.y + height,
+      diamondPos.z + Math.sin(angleOffset) * offset
+    );
+
+    const targetPosition = diamondPos.clone();
+
+    // Smooth camera transition
+    this.animateToPosition(cameraPosition, targetPosition, 2000);
+
+    console.log(`Focusing on diamond ${diamondIndex}`);
+  }
+
+  private setOverviewCamera(): void {
+    // High overview position to see all diamonds
+    const overviewPosition = new THREE.Vector3(0, 80, 80);
+    const overviewTarget = new THREE.Vector3(0, 40, 0);
+
+    this.animateToPosition(overviewPosition, overviewTarget, 2500);
+    console.log('Overview camera activated');
+  }
+
+  private animateToPosition(position: THREE.Vector3, target: THREE.Vector3, duration: number = 2000): void {
+    const startPosition = this.camera.position.clone();
+    const startTarget = this.controls.target.clone();
+    const startTime = Date.now();
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Smooth easing function
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
+
+      // Interpolate position and target
+      this.camera.position.lerpVectors(startPosition, position, easeProgress);
+      this.controls.target.lerpVectors(startTarget, target, easeProgress);
+      this.controls.update();
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    animate();
   }
 
   private animate = (): void => {
