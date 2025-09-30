@@ -97,7 +97,7 @@ class Killer7Scene {
   private init(): void {
     // Scene
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0xf8f8f8); // Very light gray background
+    this.scene.background = new THREE.Color(0x000000); // Black background
 
     // Camera - updated for much larger terrain with better culling
     this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
