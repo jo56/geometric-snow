@@ -1784,10 +1784,10 @@ class Killer7Scene {
       side: THREE.DoubleSide
     });
 
-    // 1. Two horizontal white bands - both thick torus style
+    // 1. Two horizontal white bands - positioned to partially wrap around cone
     const beltThickness = size * 0.08;
 
-    // Single band
+    // Upper band
     const upperBeltY = -size * 0.25;
     const upperBeltRadius = size * 0.625;
     const upperBeltGeometry = new THREE.TorusGeometry(upperBeltRadius, beltThickness, 16, 64);
@@ -1795,6 +1795,15 @@ class Killer7Scene {
     upperBelt.rotation.x = Math.PI / 2;
     upperBelt.position.y = upperBeltY;
     patternGroup.add(upperBelt);
+
+    // Lower band (same style, smaller radius for partial wrap effect)
+    const lowerBeltY = -size * 0.6;
+    const lowerBeltRadius = size * 0.28;
+    const lowerBeltGeometry = new THREE.TorusGeometry(lowerBeltRadius, beltThickness, 16, 64);
+    const lowerBelt = new THREE.Mesh(lowerBeltGeometry, whiteMaterial);
+    lowerBelt.rotation.x = Math.PI / 2;
+    lowerBelt.position.y = lowerBeltY;
+    patternGroup.add(lowerBelt);
 
     // 2. Top face pattern - 2D rings
     const topY = 0.01;
