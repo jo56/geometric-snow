@@ -1779,77 +1779,52 @@ class Killer7Scene {
     mesh.add(edgeLines);
 
     const patternGroup = new THREE.Group();
-
-    // Create continuous horizontal belt around the middle (halfway between top and bottom)
-    const beltY = -size * 0.5; // Halfway between bottom (-size) and top (0)
-    const beltRadius = size * 0.5; // Radius at the belt height
-    const beltSegments = 64; // High resolution for smooth belt
-    const beltPoints = [];
-
-    for (let i = 0; i <= beltSegments; i++) {
-      const theta = (i / beltSegments) * Math.PI * 2;
-      beltPoints.push(new THREE.Vector3(
-        Math.cos(theta) * beltRadius,
-        beltY,
-        Math.sin(theta) * beltRadius
-      ));
-    }
-
-    const beltGeometry = new THREE.BufferGeometry().setFromPoints(beltPoints);
-    const beltMaterial = new THREE.LineBasicMaterial({
+    const whiteMaterial = new THREE.MeshBasicMaterial({
       color: 0xffffff,
-      linewidth: 10
+      side: THREE.DoubleSide
     });
-    const beltLine = new THREE.Line(beltGeometry, beltMaterial);
-    patternGroup.add(beltLine);
 
-    // Add pattern to top face - create a star/radial pattern
-    const centerY = 0; // Top face is at y = 0
+    // 1. Two horizontal white bands - both thick torus style
+    const beltThickness = size * 0.08;
 
-    // Create 8 lines radiating from center to each vertex of the octagon
-    for (let i = 0; i < 8; i++) {
-      const theta = (i / 8) * Math.PI * 2;
-      const radiusAtTop = size * 0.85; // Slightly inset from edge
+    // Upper band
+    const upperBeltY = -size * 0.25;
+    const upperBeltRadius = size * 0.625;
+    const upperBeltGeometry = new THREE.TorusGeometry(upperBeltRadius, beltThickness, 16, 64);
+    const upperBelt = new THREE.Mesh(upperBeltGeometry, whiteMaterial);
+    upperBelt.rotation.x = Math.PI / 2;
+    upperBelt.position.y = upperBeltY;
+    patternGroup.add(upperBelt);
 
-      const radialPoints = [
-        new THREE.Vector3(0, centerY, 0), // Center of top face
-        new THREE.Vector3(
-          Math.cos(theta) * radiusAtTop,
-          centerY,
-          Math.sin(theta) * radiusAtTop
-        )
-      ];
+    // Lower band (same thick torus style)
+    const lowerBeltY = -size * 0.75;
+    const lowerBeltRadius = size * 0.375;
+    const lowerBeltGeometry = new THREE.TorusGeometry(lowerBeltRadius, beltThickness, 16, 64);
+    const lowerBelt = new THREE.Mesh(lowerBeltGeometry, whiteMaterial);
+    lowerBelt.rotation.x = Math.PI / 2;
+    lowerBelt.position.y = lowerBeltY;
+    patternGroup.add(lowerBelt);
 
-      const radialGeometry = new THREE.BufferGeometry().setFromPoints(radialPoints);
-      const radialMaterial = new THREE.LineBasicMaterial({
-        color: 0xffffff,
-        linewidth: 8
-      });
-      const radialLine = new THREE.Line(radialGeometry, radialMaterial);
-      patternGroup.add(radialLine);
-    }
+    // 2. Top face pattern - 2D rings matching thick band style
+    const topY = 0.01;
 
-    // Add a small circle at the center of the top face
-    const centerCirclePoints = [];
-    const centerCircleRadius = size * 0.15;
-    const centerCircleSegments = 32;
+    // Inner ring - 2D RingGeometry with thick width
+    const innerRingRadius = size * 0.175;
+    const innerRingWidth = beltThickness * 2;
+    const innerRingGeometry = new THREE.RingGeometry(innerRingRadius - innerRingWidth/2, innerRingRadius + innerRingWidth/2, 32);
+    const innerRing = new THREE.Mesh(innerRingGeometry, whiteMaterial);
+    innerRing.rotation.x = -Math.PI / 2;
+    innerRing.position.y = topY;
+    patternGroup.add(innerRing);
 
-    for (let i = 0; i <= centerCircleSegments; i++) {
-      const theta = (i / centerCircleSegments) * Math.PI * 2;
-      centerCirclePoints.push(new THREE.Vector3(
-        Math.cos(theta) * centerCircleRadius,
-        centerY,
-        Math.sin(theta) * centerCircleRadius
-      ));
-    }
-
-    const centerCircleGeometry = new THREE.BufferGeometry().setFromPoints(centerCirclePoints);
-    const centerCircleMaterial = new THREE.LineBasicMaterial({
-      color: 0xffffff,
-      linewidth: 8
-    });
-    const centerCircleLine = new THREE.Line(centerCircleGeometry, centerCircleMaterial);
-    patternGroup.add(centerCircleLine);
+    // Outer ring - 2D RingGeometry with thick width
+    const outerRingRadius = size * 0.7;
+    const outerRingWidth = beltThickness * 2;
+    const outerRingGeometry = new THREE.RingGeometry(outerRingRadius - outerRingWidth/2, outerRingRadius + outerRingWidth/2, 32);
+    const outerRing = new THREE.Mesh(outerRingGeometry, whiteMaterial);
+    outerRing.rotation.x = -Math.PI / 2;
+    outerRing.position.y = topY;
+    patternGroup.add(outerRing);
 
     mesh.add(patternGroup);
 
