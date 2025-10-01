@@ -21,6 +21,7 @@ class Killer7Scene {
   private mouse = new THREE.Vector2();
   private spinningDiamonds = new Set<number>();
   private playingAudios: Map<number, HTMLAudioElement> = new Map();
+  private focusedDiamond: number = -1;
   private particles!: THREE.Points;
   private particleVelocities!: Float32Array;
   private loadingProgress = 0;
@@ -177,11 +178,9 @@ class Killer7Scene {
       } else if (e.key >= '1' && e.key <= '7') {
         // Number keys for track selection only (camera + highlight, no play/pause)
         const trackIndex = parseInt(e.key) - 1;
-        const trackElement = document.querySelector(`.track-name[data-diamond="${trackIndex}"]`);
-        const isCurrentlyActive = trackElement?.classList.contains('active');
 
-        if (isCurrentlyActive && !this.playingAudios.has(trackIndex)) {
-          // If already selected (and not playing), go back to overview
+        if (trackIndex === this.focusedDiamond) {
+          // If pressing number for currently focused diamond, go back to overview
           this.resetToOverview();
         } else {
           // Otherwise, focus on this diamond
@@ -189,13 +188,13 @@ class Killer7Scene {
           this.setTrackNameHighlight(trackIndex);
         }
       } else if ('zxcvbnm'.includes(e.key.toLowerCase())) {
-        // zxcvbnm keys map to tracks 0-6 (1-7)
+        // zxcvbnm keys map to tracks 0-6 (1-7) - play without camera focus
         const keyMap: { [key: string]: number } = {
           'z': 0, 'x': 1, 'c': 2, 'v': 3, 'b': 4, 'n': 5, 'm': 6
         };
         const trackIndex = keyMap[e.key.toLowerCase()];
         if (trackIndex !== undefined) {
-          this.toggleTrack(trackIndex);
+          this.toggleTrack(trackIndex, false);
         }
       } else if (e.key === 'e' || e.key === 'E') {
         // Move camera up (strafe vertically)
@@ -1956,6 +1955,9 @@ class Killer7Scene {
   private resetToOverview(): void {
     // Don't stop the currently playing track anymore
 
+    // Clear focused diamond
+    this.focusedDiamond = -1;
+
     // Clear all UI selections
     this.clearUISelections();
 
@@ -2072,25 +2074,28 @@ class Killer7Scene {
   }
 
   private updateTrackNameUI(diamondIndex: number): void {
-    // Add active class to current track name (keep others active if playing)
+    // Update track name UI - keep highlight if it's the focused diamond
     const trackName = document.querySelector(`.track-name[data-diamond="${diamondIndex}"]`);
     if (trackName) {
-      if (this.playingAudios.has(diamondIndex)) {
+      // Keep active if it's the focused diamond, regardless of playing status
+      if (diamondIndex === this.focusedDiamond) {
         trackName.classList.add('active');
-      } else {
+      } else if (!this.playingAudios.has(diamondIndex)) {
         trackName.classList.remove('active');
       }
     }
   }
 
   private setTrackNameHighlight(diamondIndex: number): void {
-    // Just highlight this track name (for focus without play)
+    // Track which diamond is focused
+    this.focusedDiamond = diamondIndex;
+
+    // Remove active from all tracks, then add to the focused one
     document.querySelectorAll('.track-name').forEach(el => {
       const elIndex = parseInt((el as HTMLElement).dataset.diamond || '0');
       if (elIndex === diamondIndex) {
         el.classList.add('active');
-      } else if (!this.playingAudios.has(elIndex)) {
-        // Only remove active if track is not playing
+      } else {
         el.classList.remove('active');
       }
     });
@@ -2108,7 +2113,7 @@ class Killer7Scene {
     }
   }
 
-  private toggleTrack(diamondIndex: number): void {
+  private toggleTrack(diamondIndex: number, focusCamera: boolean = true): void {
     const audio = document.getElementById(`audio-${diamondIndex}`) as HTMLAudioElement;
     if (!audio) return;
 
@@ -2124,8 +2129,10 @@ class Killer7Scene {
     // Start spinning diamond
     this.spinningDiamonds.add(diamondIndex);
 
-    // Focus camera on diamond
-    this.focusOnDiamond(diamondIndex);
+    // Focus camera on diamond (optional)
+    if (focusCamera) {
+      this.focusOnDiamond(diamondIndex);
+    }
 
     // Play audio
     audio.currentTime = 0;
