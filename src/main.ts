@@ -165,7 +165,6 @@ class Killer7Scene {
     window.addEventListener('keydown', (e) => {
       if (e.key === 'q' || e.key === 'Q') {
         this.stopAllTracks();
-        this.resetToOverview();
       } else if (e.key === 'Escape' || e.key === 'r' || e.key === 'R') {
         this.resetToOverview();
       } else if (e.key === 'p' || e.key === 'P') {
