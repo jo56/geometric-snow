@@ -1208,7 +1208,6 @@ class Killer7Scene {
 
   private createFloatingObjects(): void {
     const material = this.createBinaryToonMaterial();
-    // Use MeshBasicMaterial for debris to match original look
     const debrisMaterial = this.createBinaryToonMaterial();
 
     // Ring 1: Outer ring of cubes (radius 25, high altitude)
@@ -1334,7 +1333,7 @@ class Killer7Scene {
     this.createAdditionalDiamonds(material, debrisMaterial, baseHeight);
   }
 
-  private createCenterStructures(material: THREE.ShaderMaterial, debrisMaterial: THREE.MeshBasicMaterial): void {
+  private createCenterStructures(material: THREE.ShaderMaterial, debrisMaterial: THREE.ShaderMaterial): void {
     // Create architectural structures underneath the central diamond
 
     // 1. Central pedestal platform
@@ -1479,7 +1478,7 @@ class Killer7Scene {
     }
   }
 
-  private createAdditionalDiamonds(material: THREE.ShaderMaterial, debrisMaterial: THREE.MeshBasicMaterial, baseHeight: number): void {
+  private createAdditionalDiamonds(material: THREE.ShaderMaterial, debrisMaterial: THREE.ShaderMaterial, baseHeight: number): void {
     // Create 6 additional diamonds scattered around the valley - lower heights
     // Order: clockwise from bottom-left = DRIFT, STATIC, VOID, FRAGMENT, PULSE, ECHO
     const diamondPositions = [
@@ -1606,12 +1605,12 @@ class Killer7Scene {
     });
   }
 
-  private createDiamondStructures(material: THREE.ShaderMaterial, debrisMaterial: THREE.MeshBasicMaterial, position: { x: number, z: number, height: number }, diamondIndex: number): void {
+  private createDiamondStructures(material: THREE.ShaderMaterial, debrisMaterial: THREE.ShaderMaterial, position: { x: number, z: number, height: number }, diamondIndex: number): void {
     // Create consistent debris piles under each diamond
     this.createDebrisPile(material, debrisMaterial, position);
   }
 
-  private createDebrisPile(material: THREE.ShaderMaterial, debrisMaterial: THREE.MeshBasicMaterial, position: { x: number, z: number, height: number }): void {
+  private createDebrisPile(material: THREE.ShaderMaterial, debrisMaterial: THREE.ShaderMaterial, position: { x: number, z: number, height: number }): void {
     // Create debris pile like the original ground structures
     const pileSize = 8 + Math.floor(Math.random() * 10); // 8-17 blocks per pile
     const baseSize = 3 + Math.random() * 2;
@@ -1712,9 +1711,9 @@ class Killer7Scene {
           vec3 normal = normalize(vNormal);
           float NdotL = max(dot(normal, lightDirection), 0.0);
 
-          // Binary step with better contrast against light gray background
+          // Binary step - pure black and white
           float shade = step(0.5, NdotL);
-          vec3 color = mix(vec3(0.1), vec3(0.9), shade);  // Darker contrast for visibility
+          vec3 color = mix(vec3(0.0), vec3(1.0), shade);  // Pure black and white
 
           gl_FragColor = vec4(color, 1.0);
         }
