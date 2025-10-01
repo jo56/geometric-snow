@@ -1816,25 +1816,17 @@ class Killer7Scene {
     lowerBelt.position.y = lowerBeltY;
     patternGroup.add(lowerBelt);
 
-    // 2. Top face pattern - single center ring
+    // 2. Top face pattern - center ring only
     const topY = 0.01;
 
-    // Center ring with larger radius
-    const innerRingRadius = size * 0.6;
-    const innerRingWidth = beltThickness * 2.5;
-    const innerRingGeometry = new THREE.RingGeometry(innerRingRadius - innerRingWidth/2, innerRingRadius + innerRingWidth/2, 32);
-    const innerRing = new THREE.Mesh(innerRingGeometry, whiteMaterial);
-    innerRing.rotation.x = -Math.PI / 2;
-    innerRing.position.y = topY;
-    patternGroup.add(innerRing);
-
-    // White dot in center
-    const centerDotRadius = size * 0.2;
-    const centerDotGeometry = new THREE.CircleGeometry(centerDotRadius, 32);
-    const centerDot = new THREE.Mesh(centerDotGeometry, whiteMaterial);
-    centerDot.rotation.x = -Math.PI / 2;
-    centerDot.position.y = topY + 0.001;
-    patternGroup.add(centerDot);
+    // White ring in center
+    const centerRingRadius = size * 0.5;
+    const centerRingWidth = beltThickness * 2;
+    const centerRingGeometry = new THREE.RingGeometry(centerRingRadius - centerRingWidth/2, centerRingRadius + centerRingWidth/2, 32);
+    const centerRing = new THREE.Mesh(centerRingGeometry, whiteMaterial);
+    centerRing.rotation.x = -Math.PI / 2;
+    centerRing.position.y = topY;
+    patternGroup.add(centerRing);
 
     mesh.add(patternGroup);
 
