@@ -1990,9 +1990,14 @@ class Killer7Scene {
       }
 
       if (diamondIndex !== -1) {
-        // Click acts like clicking the track name - focus camera and update UI
-        this.focusOnDiamond(diamondIndex);
-        this.setTrackNameHighlight(diamondIndex);
+        // If clicking on already focused diamond, reset to overview
+        if (diamondIndex === this.focusedDiamond) {
+          this.resetToOverview();
+        } else {
+          // Click acts like clicking the track name - focus camera and update UI
+          this.focusOnDiamond(diamondIndex);
+          this.setTrackNameHighlight(diamondIndex);
+        }
       }
     }
   }
@@ -2122,10 +2127,9 @@ class Killer7Scene {
     document.querySelectorAll('.track-name').forEach(trackName => {
       trackName.addEventListener('click', (e) => {
         const diamondIndex = parseInt((e.target as HTMLElement).dataset.diamond || '0');
-        const isCurrentlyActive = (e.target as HTMLElement).classList.contains('active');
 
-        if (isCurrentlyActive && !this.playingAudios.has(diamondIndex)) {
-          // If clicking on already selected track (and not playing), go back to overview
+        if (diamondIndex === this.focusedDiamond) {
+          // If clicking on already focused track, go back to overview
           this.resetToOverview();
         } else {
           // Otherwise, focus on this diamond
@@ -2203,14 +2207,17 @@ class Killer7Scene {
     // Focus camera on diamond (optional)
     if (focusCamera) {
       this.focusOnDiamond(diamondIndex);
+      this.setTrackNameHighlight(diamondIndex);
     }
 
     // Play audio
     audio.currentTime = 0;
     audio.play().catch(e => console.log('Audio play failed:', e));
 
-    // Update UI
-    this.updateTrackNameUI(diamondIndex);
+    // Update UI (only needed if not focusing camera, since setTrackNameHighlight handles it)
+    if (!focusCamera) {
+      this.updateTrackNameUI(diamondIndex);
+    }
     this.updatePlayButtonUI(diamondIndex, true);
   }
 
