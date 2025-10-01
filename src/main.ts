@@ -48,8 +48,8 @@ class Killer7Scene {
 
     // Set camera to overview position immediately (no animation)
     // Adjusted to be higher to compensate for raised diamonds
-    const originalPos = new THREE.Vector3(-154.35, 157.71, 50.58); // Raised Y from 52 to 82
-    const originalTarget = new THREE.Vector3(30.00, 98.01, -20.00);// Raised Y from 20 to 50
+    const originalPos = new THREE.Vector3(-138.64, 161.27, 41.32);// Raised Y from 52 to 82
+    const originalTarget = new THREE.Vector3(45.28, 96.57, -25.90);// Raised Y from 20 to 50
     const direction = originalPos.clone().sub(originalTarget).normalize();
     const overviewPosition = originalTarget.clone().add(direction.multiplyScalar(originalPos.distanceTo(originalTarget)));
     const overviewTarget = originalTarget.clone();
@@ -1944,8 +1944,8 @@ class Killer7Scene {
 
   private setOverviewCamera(): void {
     // Camera position zoomed out - higher to compensate for raised diamonds
-    const originalPos = new THREE.Vector3(-154.35, 157.71, 50.58); // Raised Y from 52 to 82
-    const originalTarget = new THREE.Vector3(30.00, 98.01, -20.00); // Raised Y from 20 to 50
+    const originalPos = new THREE.Vector3(-138.64, 161.27, 41.32); // Raised Y from 52 to 82
+    const originalTarget = new THREE.Vector3(45.28, 96.57, -25.90); // Raised Y from 20 to 50
 
     // Calculate direction from target to camera
     const direction = originalPos.clone().sub(originalTarget).normalize();
