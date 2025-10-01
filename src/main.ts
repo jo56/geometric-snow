@@ -47,12 +47,11 @@ class Killer7Scene {
     this.updateLoadingProgress(100, 'Complete!');
 
     // Set camera to overview position immediately (no animation)
-    // Adjusted to be higher and to the left
-    const originalPos = new THREE.Vector3(-85, 52, 45);
-    const originalTarget = new THREE.Vector3(30, 20, -20);
+    // Adjusted to be higher to compensate for raised diamonds
+    const originalPos = new THREE.Vector3(-134.47, 105.39, 79.69); // Raised Y from 52 to 82
+    const originalTarget = new THREE.Vector3(30.00, 68.01, -20.00); // Raised Y from 20 to 50
     const direction = originalPos.clone().sub(originalTarget).normalize();
-    const zoomOutDistance = 60;
-    const overviewPosition = originalTarget.clone().add(direction.multiplyScalar(originalPos.distanceTo(originalTarget) + zoomOutDistance));
+    const overviewPosition = originalTarget.clone().add(direction.multiplyScalar(originalPos.distanceTo(originalTarget)));
     const overviewTarget = originalTarget.clone();
 
     this.camera.position.copy(overviewPosition);
@@ -235,6 +234,18 @@ class Killer7Scene {
     // Mouse click detection for diamonds
     window.addEventListener('click', (e) => {
       this.onMouseClick(e);
+    });
+
+    // Log camera position when mouse is released after dragging
+    window.addEventListener('mouseup', () => {
+      console.log('=== Camera Position ===');
+      console.log('Position:', this.camera.position);
+      console.log('Target:', this.controls.target);
+      console.log('\n=== Copy this to set as starting view (replaces lines 51-52 AND 1928-1929) ===');
+      console.log(`const originalPos = new THREE.Vector3(${this.camera.position.x.toFixed(2)}, ${this.camera.position.y.toFixed(2)}, ${this.camera.position.z.toFixed(2)});`);
+      console.log(`const originalTarget = new THREE.Vector3(${this.controls.target.x.toFixed(2)}, ${this.controls.target.y.toFixed(2)}, ${this.controls.target.z.toFixed(2)});`);
+      console.log('this.camera.position.copy(originalPos);');
+      console.log('this.controls.target.copy(originalTarget);');
     });
 
     // Music player event listeners
@@ -1148,7 +1159,7 @@ class Killer7Scene {
     // Ring 1: Outer ring of cubes (radius 25, high altitude)
     const cubeCount = 8;
     const cubeRadius = 25;
-    const baseHeight = 50; // Even higher floating height
+    const baseHeight = 110; // Raised floating height
     for (let i = 0; i < cubeCount; i++) {
       const angle = (i / cubeCount) * Math.PI * 2;
       const cube = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), debrisMaterial);
@@ -1238,7 +1249,7 @@ class Killer7Scene {
 
     // Central focal point - massive floating diamond
     const diamondMaterial = this.createDiamondMaterial();
-    const centerPiece = this.createHalfDiamond(4, diamondMaterial); // Much larger
+    const centerPiece = this.createHalfDiamond(5, diamondMaterial); // Increased size
     centerPiece.position.set(0, baseHeight + 15, 0); // Higher in the sky
     centerPiece.castShadow = true;
     centerPiece.receiveShadow = true;
@@ -1413,7 +1424,7 @@ class Killer7Scene {
 
     diamondPositions.forEach((pos, index) => {
       // Create smaller diamond (varied sizes) with consistent black material
-      const diamondSize = 2.5 + Math.random() * 1.5; // 2.5-4 units
+      const diamondSize = 3.5 + Math.random() * 2; // 3.5-5.5 units (increased)
       const diamond = this.createHalfDiamond(diamondSize, this.createDiamondMaterial());
       diamond.position.set(pos.x, pos.height, pos.z);
       diamond.castShadow = true;
@@ -1915,16 +1926,15 @@ class Killer7Scene {
   }
 
   private setOverviewCamera(): void {
-    // Camera position zoomed out - higher and to the left
-    const originalPos = new THREE.Vector3(-85, 52, 45);
-    const originalTarget = new THREE.Vector3(30, 20, -20);
+    // Camera position zoomed out - higher to compensate for raised diamonds
+    const originalPos = new THREE.Vector3(-134.47, 105.39, 79.69); // Raised Y from 52 to 82
+    const originalTarget = new THREE.Vector3(30.00, 68.01, -20.00); // Raised Y from 20 to 50
 
     // Calculate direction from target to camera
     const direction = originalPos.clone().sub(originalTarget).normalize();
 
     // Move camera further away (each scroll ~= 10-15 units, so 5 scrolls ~= 60 units)
-    const zoomOutDistance = 60;
-    const overviewPosition = originalTarget.clone().add(direction.multiplyScalar(originalPos.distanceTo(originalTarget) + zoomOutDistance));
+    const overviewPosition = originalTarget.clone().add(direction.multiplyScalar(originalPos.distanceTo(originalTarget)));
     const overviewTarget = originalTarget.clone();
 
     console.log('Overview Position:', overviewPosition);
