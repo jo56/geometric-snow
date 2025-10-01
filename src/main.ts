@@ -20,8 +20,7 @@ class Killer7Scene {
   private raycaster = new THREE.Raycaster();
   private mouse = new THREE.Vector2();
   private spinningDiamonds = new Set<number>();
-  private currentAudio: HTMLAudioElement | null = null;
-  private currentTrack: number = -1;
+  private playingAudios: Map<number, HTMLAudioElement> = new Map();
   private particles!: THREE.Points;
   private particleVelocities!: Float32Array;
   private loadingProgress = 0;
@@ -164,7 +163,10 @@ class Killer7Scene {
 
     // Animation toggle controls and camera switching
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' || e.key === 'r' || e.key === 'R'|| e.key === 'q' || e.key === 'Q') {
+      if (e.key === 'q' || e.key === 'Q') {
+        this.stopAllTracks();
+        this.resetToOverview();
+      } else if (e.key === 'Escape' || e.key === 'r' || e.key === 'R') {
         this.resetToOverview();
       } else if (e.key === 'p' || e.key === 'P') {
         // Toggle play/pause for currently selected track
@@ -174,18 +176,27 @@ class Killer7Scene {
           this.toggleTrack(trackIndex);
         }
       } else if (e.key >= '1' && e.key <= '7') {
-        // Number keys for track selection - toggle if already selected
+        // Number keys for track selection only (camera + highlight, no play/pause)
         const trackIndex = parseInt(e.key) - 1;
         const trackElement = document.querySelector(`.track-name[data-diamond="${trackIndex}"]`);
         const isCurrentlyActive = trackElement?.classList.contains('active');
 
-        if (isCurrentlyActive) {
-          // If already selected, go back to overview
+        if (isCurrentlyActive && !this.playingAudios.has(trackIndex)) {
+          // If already selected (and not playing), go back to overview
           this.resetToOverview();
         } else {
           // Otherwise, focus on this diamond
           this.focusOnDiamond(trackIndex);
-          this.updateTrackNameUI(trackIndex);
+          this.setTrackNameHighlight(trackIndex);
+        }
+      } else if ('zxcvbnm'.includes(e.key.toLowerCase())) {
+        // zxcvbnm keys map to tracks 0-6 (1-7)
+        const keyMap: { [key: string]: number } = {
+          'z': 0, 'x': 1, 'c': 2, 'v': 3, 'b': 4, 'n': 5, 'm': 6
+        };
+        const trackIndex = keyMap[e.key.toLowerCase()];
+        if (trackIndex !== undefined) {
+          this.toggleTrack(trackIndex);
         }
       } else if (e.key === 'e' || e.key === 'E') {
         // Move camera up (strafe vertically)
@@ -1912,7 +1923,7 @@ class Killer7Scene {
       if (diamondIndex !== -1) {
         // Click acts like clicking the track name - focus camera and update UI
         this.focusOnDiamond(diamondIndex);
-        this.updateTrackNameUI(diamondIndex);
+        this.setTrackNameHighlight(diamondIndex);
       }
     }
   }
@@ -2041,13 +2052,13 @@ class Killer7Scene {
         const diamondIndex = parseInt((e.target as HTMLElement).dataset.diamond || '0');
         const isCurrentlyActive = (e.target as HTMLElement).classList.contains('active');
 
-        if (isCurrentlyActive) {
-          // If clicking on already selected track, go back to overview
+        if (isCurrentlyActive && !this.playingAudios.has(diamondIndex)) {
+          // If clicking on already selected track (and not playing), go back to overview
           this.resetToOverview();
         } else {
           // Otherwise, focus on this diamond
           this.focusOnDiamond(diamondIndex);
-          this.updateTrackNameUI(diamondIndex);
+          this.setTrackNameHighlight(diamondIndex);
         }
       });
     });
@@ -2062,10 +2073,28 @@ class Killer7Scene {
   }
 
   private updateTrackNameUI(diamondIndex: number): void {
-    // Remove active class from all track names
-    document.querySelectorAll('.track-name').forEach(el => el.classList.remove('active'));
-    // Add active class to current track name
-    document.querySelector(`.track-name[data-diamond="${diamondIndex}"]`)?.classList.add('active');
+    // Add active class to current track name (keep others active if playing)
+    const trackName = document.querySelector(`.track-name[data-diamond="${diamondIndex}"]`);
+    if (trackName) {
+      if (this.playingAudios.has(diamondIndex)) {
+        trackName.classList.add('active');
+      } else {
+        trackName.classList.remove('active');
+      }
+    }
+  }
+
+  private setTrackNameHighlight(diamondIndex: number): void {
+    // Just highlight this track name (for focus without play)
+    document.querySelectorAll('.track-name').forEach(el => {
+      const elIndex = parseInt((el as HTMLElement).dataset.diamond || '0');
+      if (elIndex === diamondIndex) {
+        el.classList.add('active');
+      } else if (!this.playingAudios.has(elIndex)) {
+        // Only remove active if track is not playing
+        el.classList.remove('active');
+      }
+    });
   }
 
   private updatePlayButtonUI(diamondIndex: number, isPlaying: boolean): void {
@@ -2085,17 +2114,13 @@ class Killer7Scene {
     if (!audio) return;
 
     // If this track is already playing, pause it
-    if (this.currentTrack === diamondIndex && this.currentAudio && !this.currentAudio.paused) {
-      this.stopCurrentTrack();
+    if (this.playingAudios.has(diamondIndex)) {
+      this.stopTrack(diamondIndex);
       return;
     }
 
-    // Stop any currently playing track
-    this.stopCurrentTrack();
-
     // Start new track
-    this.currentTrack = diamondIndex;
-    this.currentAudio = audio;
+    this.playingAudios.set(diamondIndex, audio);
 
     // Start spinning diamond
     this.spinningDiamonds.add(diamondIndex);
@@ -2103,31 +2128,37 @@ class Killer7Scene {
     // Focus camera on diamond
     this.focusOnDiamond(diamondIndex);
 
-    // Update UI
-    this.updateTrackNameUI(diamondIndex);
-    this.updatePlayButtonUI(diamondIndex, true);
-
     // Play audio
     audio.currentTime = 0;
     audio.play().catch(e => console.log('Audio play failed:', e));
+
+    // Update UI
+    this.updateTrackNameUI(diamondIndex);
+    this.updatePlayButtonUI(diamondIndex, true);
   }
 
-  private stopCurrentTrack(): void {
-    if (this.currentAudio) {
-      this.currentAudio.pause();
-      this.currentAudio.currentTime = 0;
+  private stopTrack(diamondIndex: number): void {
+    const audio = this.playingAudios.get(diamondIndex);
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+      this.playingAudios.delete(diamondIndex);
     }
 
-    if (this.currentTrack >= 0) {
-      // Stop spinning diamond
-      this.spinningDiamonds.delete(this.currentTrack);
+    // Stop spinning diamond
+    this.spinningDiamonds.delete(diamondIndex);
 
-      // Update UI
-      this.updatePlayButtonUI(this.currentTrack, false);
-    }
+    // Update UI
+    this.updateTrackNameUI(diamondIndex);
+    this.updatePlayButtonUI(diamondIndex, false);
+  }
 
-    this.currentAudio = null;
-    this.currentTrack = -1;
+  private stopAllTracks(): void {
+    // Stop all currently playing tracks
+    const playingIndices = Array.from(this.playingAudios.keys());
+    playingIndices.forEach(index => {
+      this.stopTrack(index);
+    });
   }
 
   private animate = (): void => {
