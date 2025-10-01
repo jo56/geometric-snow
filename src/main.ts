@@ -186,25 +186,24 @@ class Killer7Scene {
           this.toggleTrack(trackIndex);
         }
       } else if (e.key >= '1' && e.key <= '7') {
-        // Number keys for track selection only (camera + highlight, no play/pause)
+        // Number keys for play/pause without camera focus
         const trackIndex = parseInt(e.key) - 1;
-
-        if (trackIndex === this.focusedDiamond) {
-          // If pressing number for currently focused diamond, go back to overview
-          this.resetToOverview();
-        } else {
-          // Otherwise, focus on this diamond
-          this.focusOnDiamond(trackIndex);
-          this.setTrackNameHighlight(trackIndex);
-        }
+        this.toggleTrack(trackIndex, false);
       } else if ('zxcvbnm'.includes(e.key.toLowerCase())) {
-        // zxcvbnm keys map to tracks 0-6 (1-7) - play without camera focus
+        // zxcvbnm keys map to tracks 0-6 (1-7) - camera + highlight, no play/pause
         const keyMap: { [key: string]: number } = {
           'z': 0, 'x': 1, 'c': 2, 'v': 3, 'b': 4, 'n': 5, 'm': 6
         };
         const trackIndex = keyMap[e.key.toLowerCase()];
         if (trackIndex !== undefined) {
-          this.toggleTrack(trackIndex, false);
+          if (trackIndex === this.focusedDiamond) {
+            // If pressing key for currently focused diamond, go back to overview
+            this.resetToOverview();
+          } else {
+            // Otherwise, focus on this diamond
+            this.focusOnDiamond(trackIndex);
+            this.setTrackNameHighlight(trackIndex);
+          }
         }
       } else if (e.key === 'e' || e.key === 'E') {
         // Move camera up (strafe vertically)
@@ -1301,35 +1300,10 @@ class Killer7Scene {
       this.animatedObjects.push(debris);
     }
 
-    // Central focal point - massive floating diamond
-    const diamondMaterial = this.createDiamondMaterial();
-    const centerPiece = this.createHalfDiamond(9, diamondMaterial); // Increased size
-    centerPiece.position.set(0, baseHeight + 15, 0); // Higher in the sky
-    centerPiece.castShadow = true;
-    centerPiece.receiveShadow = true;
-    centerPiece.userData = { diamondIndex: 0 }; // Mark as clickable diamond
-    this.scene.add(centerPiece);
-    this.geometryObjects.push(centerPiece);
-    this.animatedObjects.push(centerPiece);
-    this.diamonds.push(centerPiece);
-
-    // Create point light for center diamond (initially off)
-    const centerLight = new THREE.PointLight(0xffffff, 0, 50); // White light, intensity 0 (off), distance 50
-    centerLight.position.set(0, baseHeight + 15, 0);
-    this.scene.add(centerLight);
-    this.diamondLights.set(0, centerLight);
-
-    // Create aura particle system for center diamond
-    const centerAura = this.createDiamondAura();
-    centerAura.position.set(0, baseHeight + 15, 0);
-    centerAura.visible = false; // Initially hidden
-    this.scene.add(centerAura);
-    this.diamondAuras.set(0, centerAura);
-
-    // Add structures underneath the central diamond
+    // Add structures underneath the central diamond position
     this.createCenterStructures(material, debrisMaterial);
 
-    // Additional floating diamonds with their own debris fields
+    // Create all diamonds (including center) with their own debris fields
     this.createAdditionalDiamonds(material, debrisMaterial, baseHeight);
   }
 
@@ -1479,42 +1453,42 @@ class Killer7Scene {
   }
 
   private createAdditionalDiamonds(material: THREE.ShaderMaterial, debrisMaterial: THREE.ShaderMaterial, baseHeight: number): void {
-    // Create 6 additional diamonds scattered around the valley - lower heights
-    // Order: clockwise from bottom-left = DRIFT, STATIC, VOID, FRAGMENT, PULSE, ECHO
+    // Create all 7 diamonds including center
+    // Order: DRIFT, STATIC, VOID, NEXUS (center), FRAGMENT, PULSE, ECHO
     const diamondPositions = [
-      { x: -90, z: -30, height: baseHeight + 10 },  // DRIFT (bottom-left area)
-      { x: -40, z: -70, height: baseHeight + 7 },   // STATIC (bottom-left)
-      { x: 45, z: -85, height: baseHeight + 3 },    // VOID (bottom-right)
-      { x: 80, z: 40, height: baseHeight + 5 },     // FRAGMENT (right)
-      { x: 20, z: 100, height: baseHeight + 6 },    // PULSE (top)
-      { x: -60, z: 70, height: baseHeight + 8 }     // ECHO (top-left)
+      { x: -90, z: -30, height: baseHeight + 10, size: 7 },   // 0: DRIFT (bottom-left area)
+      { x: -40, z: -70, height: baseHeight + 7, size: 7 },    // 1: STATIC (bottom-left)
+      { x: 45, z: -85, height: baseHeight + 3, size: 7 },     // 2: VOID (bottom-right)
+      { x: 0, z: 0, height: baseHeight + 15, size: 9 },       // 3: NEXUS (center - larger)
+      { x: 80, z: 40, height: baseHeight + 5, size: 7 },      // 4: FRAGMENT (right)
+      { x: 20, z: 100, height: baseHeight + 6, size: 7 },     // 5: PULSE (top)
+      { x: -60, z: 70, height: baseHeight + 8, size: 7 }      // 6: ECHO (top-left)
     ];
 
     diamondPositions.forEach((pos, index) => {
-      // Create diamond (same size as central diamond)
-      const diamondSize = 7; // Same size as central diamond
-      const diamond = this.createHalfDiamond(diamondSize, this.createDiamondMaterial());
+      const diamond = this.createHalfDiamond(pos.size, this.createDiamondMaterial());
       diamond.position.set(pos.x, pos.height, pos.z);
       diamond.castShadow = true;
       diamond.receiveShadow = true;
-      diamond.userData = { diamondIndex: index + 1 }; // Mark as clickable diamond
+      diamond.userData = { diamondIndex: index };
       this.scene.add(diamond);
       this.geometryObjects.push(diamond);
       this.animatedObjects.push(diamond);
       this.diamonds.push(diamond);
 
       // Create point light for this diamond (initially off)
-      const light = new THREE.PointLight(0xffffff, 0, 40); // White light, intensity 0 (off), distance 40
+      const lightDistance = index === 3 ? 50 : 40; // Center diamond has larger light distance
+      const light = new THREE.PointLight(0xffffff, 0, lightDistance);
       light.position.set(pos.x, pos.height, pos.z);
       this.scene.add(light);
-      this.diamondLights.set(index + 1, light);
+      this.diamondLights.set(index, light);
 
       // Create aura particle system for this diamond
       const aura = this.createDiamondAura();
       aura.position.set(pos.x, pos.height, pos.z);
       aura.visible = false; // Initially hidden
       this.scene.add(aura);
-      this.diamondAuras.set(index + 1, aura);
+      this.diamondAuras.set(index, aura);
 
       // Initialize debris array for this diamond
       const debrisArray: THREE.Object3D[] = [];
@@ -2139,11 +2113,11 @@ class Killer7Scene {
       });
     });
 
-    // Play button click handlers (spinning + audio + camera view)
+    // Play button click handlers (spinning + audio, no camera)
     document.querySelectorAll('.play-button').forEach(playButton => {
       playButton.addEventListener('click', (e) => {
         const diamondIndex = parseInt((e.target as HTMLElement).dataset.diamond || '0');
-        this.toggleTrack(diamondIndex);
+        this.toggleTrack(diamondIndex, false);
       });
     });
   }
