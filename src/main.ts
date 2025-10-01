@@ -1787,7 +1787,7 @@ class Killer7Scene {
     // 1. Two horizontal white bands - both thick torus style
     const beltThickness = size * 0.08;
 
-    // Upper band
+    // Single band
     const upperBeltY = -size * 0.25;
     const upperBeltRadius = size * 0.625;
     const upperBeltGeometry = new THREE.TorusGeometry(upperBeltRadius, beltThickness, 16, 64);
@@ -1796,28 +1796,10 @@ class Killer7Scene {
     upperBelt.position.y = upperBeltY;
     patternGroup.add(upperBelt);
 
-    // Lower band (same thick torus style)
-    const lowerBeltY = -size * 0.75;
-    const lowerBeltRadius = size * 0.375;
-    const lowerBeltGeometry = new THREE.TorusGeometry(lowerBeltRadius, beltThickness, 16, 64);
-    const lowerBelt = new THREE.Mesh(lowerBeltGeometry, whiteMaterial);
-    lowerBelt.rotation.x = Math.PI / 2;
-    lowerBelt.position.y = lowerBeltY;
-    patternGroup.add(lowerBelt);
-
-    // 2. Top face pattern - 2D rings matching thick band style
+    // 2. Top face pattern - 2D rings
     const topY = 0.01;
 
-    // Inner ring - 2D RingGeometry with thick width
-    const innerRingRadius = size * 0.175;
-    const innerRingWidth = beltThickness * 2;
-    const innerRingGeometry = new THREE.RingGeometry(innerRingRadius - innerRingWidth/2, innerRingRadius + innerRingWidth/2, 32);
-    const innerRing = new THREE.Mesh(innerRingGeometry, whiteMaterial);
-    innerRing.rotation.x = -Math.PI / 2;
-    innerRing.position.y = topY;
-    patternGroup.add(innerRing);
-
-    // Outer ring - 2D RingGeometry with thick width
+    // Outer ring (closer to edge)
     const outerRingRadius = size * 0.7;
     const outerRingWidth = beltThickness * 2;
     const outerRingGeometry = new THREE.RingGeometry(outerRingRadius - outerRingWidth/2, outerRingRadius + outerRingWidth/2, 32);
@@ -1825,6 +1807,15 @@ class Killer7Scene {
     outerRing.rotation.x = -Math.PI / 2;
     outerRing.position.y = topY;
     patternGroup.add(outerRing);
+
+    // Inner ring
+    const innerRingRadius = size * 0.175;
+    const innerRingWidth = beltThickness * 2;
+    const innerRingGeometry = new THREE.RingGeometry(innerRingRadius - innerRingWidth/2, innerRingRadius + innerRingWidth/2, 32);
+    const innerRing = new THREE.Mesh(innerRingGeometry, whiteMaterial);
+    innerRing.rotation.x = -Math.PI / 2;
+    innerRing.position.y = topY;
+    patternGroup.add(innerRing);
 
     mesh.add(patternGroup);
 
