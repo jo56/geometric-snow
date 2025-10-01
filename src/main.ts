@@ -17,6 +17,8 @@ class Killer7Scene {
   private clock = new THREE.Clock();
   private animationPaused = false;
   private diamonds: THREE.Mesh[] = [];
+  private diamondLights: Map<number, THREE.PointLight> = new Map();
+  private diamondAuras: Map<number, THREE.Points> = new Map();
   private raycaster = new THREE.Raycaster();
   private mouse = new THREE.Vector2();
   private spinningDiamonds = new Set<number>();
@@ -98,6 +100,14 @@ class Killer7Scene {
     // Scene
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x000000); // Black background
+
+    // Add ambient light for diamond patterns only
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    this.scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.3);
+    directionalLight.position.set(5, 10, 5);
+    this.scene.add(directionalLight);
 
     // Add white ground plane with toon shading (created after materials are available)
     // This will be added in createSceneAsync after materials are set up
@@ -1107,6 +1117,40 @@ class Killer7Scene {
     this.particleVelocities = velocities;
   }
 
+  private createDiamondAura(): THREE.Points {
+    // Create radiant particle aura around diamond
+    const particleCount = 150;
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+
+    // Create sphere of particles around diamond
+    for (let i = 0; i < particleCount; i++) {
+      const i3 = i * 3;
+
+      // Random spherical distribution
+      const radius = 8 + Math.random() * 6; // Particles between radius 8-14
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+
+      positions[i3] = radius * Math.sin(phi) * Math.cos(theta);
+      positions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+      positions[i3 + 2] = radius * Math.cos(phi);
+    }
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+    const material = new THREE.PointsMaterial({
+      color: 0xffffff,
+      size: 1.5,
+      transparent: true,
+      opacity: 0.8,
+      blending: THREE.AdditiveBlending, // Additive blending for glow effect
+      sizeAttenuation: true
+    });
+
+    return new THREE.Points(geometry, material);
+  }
+
   private createBackground(): void {
     const material = this.createBinaryToonMaterial();
 
@@ -1164,6 +1208,7 @@ class Killer7Scene {
 
   private createFloatingObjects(): void {
     const material = this.createBinaryToonMaterial();
+    // Use MeshBasicMaterial for debris to match original look
     const debrisMaterial = this.createBinaryToonMaterial();
 
     // Ring 1: Outer ring of cubes (radius 25, high altitude)
@@ -1268,6 +1313,19 @@ class Killer7Scene {
     this.geometryObjects.push(centerPiece);
     this.animatedObjects.push(centerPiece);
     this.diamonds.push(centerPiece);
+
+    // Create point light for center diamond (initially off)
+    const centerLight = new THREE.PointLight(0xffffff, 0, 50); // White light, intensity 0 (off), distance 50
+    centerLight.position.set(0, baseHeight + 15, 0);
+    this.scene.add(centerLight);
+    this.diamondLights.set(0, centerLight);
+
+    // Create aura particle system for center diamond
+    const centerAura = this.createDiamondAura();
+    centerAura.position.set(0, baseHeight + 15, 0);
+    centerAura.visible = false; // Initially hidden
+    this.scene.add(centerAura);
+    this.diamondAuras.set(0, centerAura);
 
     // Add structures underneath the central diamond
     this.createCenterStructures(material, debrisMaterial);
@@ -1444,6 +1502,19 @@ class Killer7Scene {
       this.geometryObjects.push(diamond);
       this.animatedObjects.push(diamond);
       this.diamonds.push(diamond);
+
+      // Create point light for this diamond (initially off)
+      const light = new THREE.PointLight(0xffffff, 0, 40); // White light, intensity 0 (off), distance 40
+      light.position.set(pos.x, pos.height, pos.z);
+      this.scene.add(light);
+      this.diamondLights.set(index + 1, light);
+
+      // Create aura particle system for this diamond
+      const aura = this.createDiamondAura();
+      aura.position.set(pos.x, pos.height, pos.z);
+      aura.visible = false; // Initially hidden
+      this.scene.add(aura);
+      this.diamondAuras.set(index + 1, aura);
 
       // Initialize debris array for this diamond
       const debrisArray: THREE.Object3D[] = [];
@@ -2202,10 +2273,49 @@ class Killer7Scene {
         }
       }
 
-      // Animate spinning diamonds
-      this.spinningDiamonds.forEach(diamondIndex => {
-        if (this.diamonds[diamondIndex]) {
-          this.diamonds[diamondIndex].rotation.y = -time * 2.0; // Spin clockwise around Y axis
+      // Animate spinning diamonds with radiance aura effect
+      this.diamonds.forEach((diamond, index) => {
+        const aura = this.diamondAuras.get(index);
+
+        if (this.spinningDiamonds.has(index)) {
+          diamond.rotation.y = -time * 2.0; // Spin clockwise around Y axis
+
+          // Show and animate aura
+          if (aura) {
+            aura.visible = true;
+            aura.rotation.y = time * 0.5;
+            aura.rotation.x = time * 0.3;
+
+            // Pulse aura opacity
+            const pulseFactor = 0.6 + Math.sin(time * 2) * 0.2;
+            (aura.material as THREE.PointsMaterial).opacity = pulseFactor;
+          }
+
+          // Brighten white patterns
+          const glowAmount = 1.4 + Math.sin(time * 2) * 0.4;
+          diamond.traverse((child) => {
+            if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshBasicMaterial) {
+              if (child.material.color.r > 0.5) {
+                const brightColor = new THREE.Color(0xffffff);
+                brightColor.multiplyScalar(glowAmount);
+                child.material.color.copy(brightColor);
+              }
+            }
+          });
+        } else {
+          // Hide aura when not playing
+          if (aura) {
+            aura.visible = false;
+          }
+
+          // Reset to normal white
+          diamond.traverse((child) => {
+            if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshBasicMaterial) {
+              if (child.material.color.r > 0.5 || child.material.color.r > 1.0) {
+                child.material.color.set(0xffffff);
+              }
+            }
+          });
         }
       });
 
@@ -2246,6 +2356,7 @@ class Killer7Scene {
           });
         }
       });
+
 
       // Smooth particle animation (every frame)
       if (this.particles && this.particleVelocities) {
