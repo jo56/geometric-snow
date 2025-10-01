@@ -1816,20 +1816,19 @@ class Killer7Scene {
     lowerBelt.position.y = lowerBeltY;
     patternGroup.add(lowerBelt);
 
-    // 2. Top face pattern - fragmented ring (matching side band style)
+    // 2. Top face pattern - fragmented ring with gaps
     const topY = 0.01;
 
-    // Create fragmented arc segments to match the partial-wrap effect of side bands
+    // Center fragmented ring - partial torus segments with gaps
     const centerRingRadius = size * 0.5;
-    const numSegments = 8; // 8 segments to match octagonal shape
+    const numSegments = 8;
     const arcLength = (Math.PI * 2) / numSegments;
-    const gapRatio = 0.3; // 30% gap between segments
+    const gapRatio = 0.3;
 
     for (let i = 0; i < numSegments; i++) {
       const startAngle = i * arcLength;
       const endAngle = startAngle + arcLength * (1 - gapRatio);
 
-      // Create partial torus for each segment
       const segmentGeometry = new THREE.TorusGeometry(
         centerRingRadius,
         beltThickness,
@@ -1843,6 +1842,15 @@ class Killer7Scene {
       segment.position.y = topY;
       patternGroup.add(segment);
     }
+
+    // Edge border - 2D flat ring near the edge on top face
+    const edgeRingRadius = size * 0.9;
+    const edgeRingWidth = beltThickness * 1.5;
+    const edgeRingGeometry = new THREE.RingGeometry(edgeRingRadius - edgeRingWidth/2, edgeRingRadius + edgeRingWidth/2, 32);
+    const edgeRing = new THREE.Mesh(edgeRingGeometry, whiteMaterial);
+    edgeRing.rotation.x = -Math.PI / 2;
+    edgeRing.position.y = topY;
+    patternGroup.add(edgeRing);
 
     mesh.add(patternGroup);
 
