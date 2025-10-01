@@ -48,8 +48,8 @@ class Killer7Scene {
 
     // Set camera to overview position immediately (no animation)
     // Adjusted to be higher to compensate for raised diamonds
-    const originalPos = new THREE.Vector3(-134.47, 105.39, 79.69); // Raised Y from 52 to 82
-    const originalTarget = new THREE.Vector3(30.00, 68.01, -20.00); // Raised Y from 20 to 50
+    const originalPos = new THREE.Vector3(-154.35, 157.71, 50.58); // Raised Y from 52 to 82
+    const originalTarget = new THREE.Vector3(30.00, 98.01, -20.00);// Raised Y from 20 to 50
     const direction = originalPos.clone().sub(originalTarget).normalize();
     const overviewPosition = originalTarget.clone().add(direction.multiplyScalar(originalPos.distanceTo(originalTarget)));
     const overviewTarget = originalTarget.clone();
@@ -1159,7 +1159,7 @@ class Killer7Scene {
     // Ring 1: Outer ring of cubes (radius 25, high altitude)
     const cubeCount = 8;
     const cubeRadius = 25;
-    const baseHeight = 110; // Raised floating height
+    const baseHeight = 135; // Raised floating height
     for (let i = 0; i < cubeCount; i++) {
       const angle = (i / cubeCount) * Math.PI * 2;
       const cube = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), debrisMaterial);
@@ -1249,7 +1249,7 @@ class Killer7Scene {
 
     // Central focal point - massive floating diamond
     const diamondMaterial = this.createDiamondMaterial();
-    const centerPiece = this.createHalfDiamond(5, diamondMaterial); // Increased size
+    const centerPiece = this.createHalfDiamond(9, diamondMaterial); // Increased size
     centerPiece.position.set(0, baseHeight + 15, 0); // Higher in the sky
     centerPiece.castShadow = true;
     centerPiece.receiveShadow = true;
@@ -1423,8 +1423,8 @@ class Killer7Scene {
     ];
 
     diamondPositions.forEach((pos, index) => {
-      // Create smaller diamond (varied sizes) with consistent black material
-      const diamondSize = 3.5 + Math.random() * 2; // 3.5-5.5 units (increased)
+      // Create diamond (same size as central diamond)
+      const diamondSize = 7; // Same size as central diamond
       const diamond = this.createHalfDiamond(diamondSize, this.createDiamondMaterial());
       diamond.position.set(pos.x, pos.height, pos.z);
       diamond.castShadow = true;
@@ -1816,17 +1816,33 @@ class Killer7Scene {
     lowerBelt.position.y = lowerBeltY;
     patternGroup.add(lowerBelt);
 
-    // 2. Top face pattern - center ring only
+    // 2. Top face pattern - fragmented ring (matching side band style)
     const topY = 0.01;
 
-    // White ring in center
+    // Create fragmented arc segments to match the partial-wrap effect of side bands
     const centerRingRadius = size * 0.5;
-    const centerRingWidth = beltThickness * 2;
-    const centerRingGeometry = new THREE.RingGeometry(centerRingRadius - centerRingWidth/2, centerRingRadius + centerRingWidth/2, 32);
-    const centerRing = new THREE.Mesh(centerRingGeometry, whiteMaterial);
-    centerRing.rotation.x = -Math.PI / 2;
-    centerRing.position.y = topY;
-    patternGroup.add(centerRing);
+    const numSegments = 8; // 8 segments to match octagonal shape
+    const arcLength = (Math.PI * 2) / numSegments;
+    const gapRatio = 0.3; // 30% gap between segments
+
+    for (let i = 0; i < numSegments; i++) {
+      const startAngle = i * arcLength;
+      const endAngle = startAngle + arcLength * (1 - gapRatio);
+
+      // Create partial torus for each segment
+      const segmentGeometry = new THREE.TorusGeometry(
+        centerRingRadius,
+        beltThickness,
+        16,
+        16,
+        endAngle - startAngle
+      );
+      const segment = new THREE.Mesh(segmentGeometry, whiteMaterial);
+      segment.rotation.x = Math.PI / 2;
+      segment.rotation.z = startAngle;
+      segment.position.y = topY;
+      patternGroup.add(segment);
+    }
 
     mesh.add(patternGroup);
 
@@ -1919,8 +1935,8 @@ class Killer7Scene {
 
   private setOverviewCamera(): void {
     // Camera position zoomed out - higher to compensate for raised diamonds
-    const originalPos = new THREE.Vector3(-134.47, 105.39, 79.69); // Raised Y from 52 to 82
-    const originalTarget = new THREE.Vector3(30.00, 68.01, -20.00); // Raised Y from 20 to 50
+    const originalPos = new THREE.Vector3(-154.35, 157.71, 50.58); // Raised Y from 52 to 82
+    const originalTarget = new THREE.Vector3(30.00, 98.01, -20.00); // Raised Y from 20 to 50
 
     // Calculate direction from target to camera
     const direction = originalPos.clone().sub(originalTarget).normalize();
