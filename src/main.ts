@@ -97,7 +97,10 @@ class Killer7Scene {
   private init(): void {
     // Scene
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0xf8f8f8); // Very light gray background
+    this.scene.background = new THREE.Color(0x000000); // Black background
+
+    // Add white ground plane with toon shading (created after materials are available)
+    // This will be added in createSceneAsync after materials are set up
 
     // Camera - updated for much larger terrain with better culling
     this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
@@ -161,7 +164,7 @@ class Killer7Scene {
 
     // Animation toggle controls and camera switching
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' || e.key === 'q' || e.key === 'Q') {
+      if (e.key === 'Escape' || e.key === 'r' || e.key === 'R'|| e.key === 'q' || e.key === 'Q') {
         this.resetToOverview();
       } else if (e.key === 'p' || e.key === 'P') {
         // Toggle play/pause for currently selected track
@@ -876,6 +879,10 @@ class Killer7Scene {
     // Create scene in chunks with yield points for loading progress
     await this.yieldToMain();
 
+    // Add stars to black background first (render order)
+    this.createStars();
+    await this.yieldToMain();
+
     // Create massive mountainous terrain
     this.createTerrain(material);
     await this.yieldToMain();
@@ -923,6 +930,10 @@ class Killer7Scene {
 
     await this.yieldToMain();
 
+    // Add white ground plane with toon shading
+    this.createWhiteGroundPlane(material);
+    await this.yieldToMain();
+
     // Add background architecture
     this.createBackground();
     await this.yieldToMain();
@@ -940,6 +951,94 @@ class Killer7Scene {
     return new Promise(resolve => {
       setTimeout(resolve, 0);
     });
+  }
+
+  private createStars(): void {
+    // Create small static stars in the black background
+    const starCount = 1000;
+    const starGeometry = new THREE.BufferGeometry();
+    const starPositions = new Float32Array(starCount * 3);
+
+    for (let i = 0; i < starCount; i++) {
+      const i3 = i * 3;
+
+      const radius = 1200 + Math.random() * 400; // Far away, beyond mountains
+      const theta = Math.random() * Math.PI * 2;
+
+      // Create belt of stars around mountains with some higher stars
+      let y;
+      if (i < starCount * 0.65) {
+        // 65% in belt around mountain height (200-500)
+        y = 200 + Math.random() * 300;
+        const horizontalRadius = Math.sqrt(radius * radius - y * y);
+        starPositions[i3] = horizontalRadius * Math.cos(theta);
+        starPositions[i3 + 1] = y;
+        starPositions[i3 + 2] = horizontalRadius * Math.sin(theta);
+      } else {
+        // 35% higher in sky
+        const phi = Math.random() * Math.PI * 0.5;
+        starPositions[i3] = radius * Math.sin(phi) * Math.cos(theta);
+        starPositions[i3 + 1] = radius * Math.cos(phi);
+        starPositions[i3 + 2] = radius * Math.sin(phi) * Math.sin(theta);
+      }
+    }
+
+    starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+
+    const starMaterial = new THREE.PointsMaterial({
+      color: 0xffffff,
+      size: 4.0,
+      sizeAttenuation: false,
+      transparent: false,
+      depthTest: true,
+      depthWrite: false
+    });
+
+    const stars = new THREE.Points(starGeometry, starMaterial);
+    stars.renderOrder = -1; // Render stars first
+    this.scene.add(stars);
+  }
+
+  private createWhiteGroundPlane(material: THREE.ShaderMaterial): void {
+    // Create inverted toon material for white ground (bright base, dark shadows)
+    const groundMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        lightDirection: { value: new THREE.Vector3(5, 10, 5).normalize() }
+      },
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 lightDirection;
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+
+        void main() {
+          vec3 normal = normalize(vNormal);
+          float NdotL = max(dot(normal, lightDirection), 0.0);
+
+          // Inverted toon: subtle off-white with gray shadows
+          float shade = step(0.5, NdotL);
+          vec3 color = mix(vec3(0.5), vec3(0.92), shade);  // Gray shadows to subtle off-white
+
+          gl_FragColor = vec4(color, 1.0);
+        }
+      `
+    });
+
+    const groundGeometry = new THREE.PlaneGeometry(3000, 3000);
+    const groundPlane = new THREE.Mesh(groundGeometry, groundMaterial);
+    groundPlane.rotation.x = -Math.PI / 2;
+    groundPlane.position.y = -1;
+    groundPlane.receiveShadow = true;
+    this.scene.add(groundPlane);
   }
 
   private createOptimizedParticleSystem(): void {
@@ -1044,10 +1143,7 @@ class Killer7Scene {
 
   private createFloatingObjects(): void {
     const material = this.createBinaryToonMaterial();
-    const debrisMaterial = new THREE.MeshBasicMaterial({
-      color: 0x000000,
-      side: THREE.DoubleSide
-    });
+    const debrisMaterial = this.createBinaryToonMaterial();
 
     // Ring 1: Outer ring of cubes (radius 25, high altitude)
     const cubeCount = 8;
@@ -1557,34 +1653,84 @@ class Killer7Scene {
 
           gl_FragColor = vec4(color, 1.0);
         }
+      `,
+      depthWrite: true,
+      depthTest: true
+    });
+  }
+
+  private createDiamondMaterial(): THREE.ShaderMaterial {
+    return new THREE.ShaderMaterial({
+      uniforms: {},
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+
+        void main() {
+          vec3 normal = normalize(vNormal);
+
+          // Solid black base with solid white edge pattern
+          float edgeIntensity = 1.0 - abs(dot(normal, normalize(vPosition)));
+          float edge = step(0.6, edgeIntensity); // Binary step for solid white edges
+
+          vec3 color = mix(vec3(0.0), vec3(1.0), edge);
+
+          gl_FragColor = vec4(color, 1.0);
+        }
       `
     });
   }
 
-  private createDiamondMaterial(): THREE.MeshBasicMaterial {
-    return new THREE.MeshBasicMaterial({
-      color: 0x000000,  // Pure black, always visible
-      side: THREE.DoubleSide  // Render both sides
-    });
-  }
+  private createDebrisMaterial(): THREE.ShaderMaterial {
+    return new THREE.ShaderMaterial({
+      uniforms: {},
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
 
-  private createDebrisMaterial(): THREE.MeshBasicMaterial {
-    return new THREE.MeshBasicMaterial({
-      color: 0x000000,  // Pure black like the diamonds
-      side: THREE.DoubleSide
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+
+        void main() {
+          vec3 normal = normalize(vNormal);
+
+          // Solid black base with solid white edge pattern
+          float edgeIntensity = 1.0 - abs(dot(normal, normalize(vPosition)));
+          float edge = step(0.6, edgeIntensity); // Binary step for solid white edges
+
+          vec3 color = mix(vec3(0.0), vec3(1.0), edge);
+
+          gl_FragColor = vec4(color, 1.0);
+        }
+      `
     });
   }
 
   private createHalfDiamond(size: number, material: THREE.Material): THREE.Mesh {
-    // Create bottom half of diamond manually
     const geometry = new THREE.BufferGeometry();
 
-    // Define vertices for bottom half of octahedron
     const vertices = new Float32Array([
-      // Bottom point
+      // Bottom point (vertex 0)
       0, -size, 0,
 
-      // Middle ring (8 points around the equator)
+      // Middle ring (8 points around the equator) - vertices 1-8
       size, 0, 0,
       size * 0.707, 0, size * 0.707,
       0, 0, size,
@@ -1595,9 +1741,8 @@ class Killer7Scene {
       size * 0.707, 0, -size * 0.707
     ]);
 
-    // Define faces (triangles connecting bottom point to edge ring)
     const indices = [
-      // Bottom triangles - reverse winding for proper normals
+      // Bottom triangles (8 triangular faces from bottom point to ring)
       0, 2, 1,
       0, 3, 2,
       0, 4, 3,
@@ -1605,14 +1750,84 @@ class Killer7Scene {
       0, 6, 5,
       0, 7, 6,
       0, 8, 7,
-      0, 1, 8
+      0, 1, 8,
+
+      // Top face (octagon split into 6 triangles)
+      1, 2, 3,
+      1, 3, 4,
+      1, 4, 5,
+      1, 5, 6,
+      1, 6, 7,
+      1, 7, 8
     ];
 
     geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
     geometry.setIndex(indices);
     geometry.computeVertexNormals();
 
-    return new THREE.Mesh(geometry, material);
+    const blackMaterial = new THREE.MeshBasicMaterial({
+      color: 0x000000,
+      side: THREE.DoubleSide
+    });
+
+    const mesh = new THREE.Mesh(geometry, blackMaterial);
+
+    // Add black edges to blend with shape
+    const edges = new THREE.EdgesGeometry(geometry, 1);
+    const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
+    const edgeLines = new THREE.LineSegments(edges, edgeMaterial);
+    mesh.add(edgeLines);
+
+    const patternGroup = new THREE.Group();
+    const whiteMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      side: THREE.DoubleSide
+    });
+
+    // 1. Two horizontal white bands - positioned to partially wrap around cone
+    const beltThickness = size * 0.08;
+
+    // Upper band
+    const upperBeltY = -size * 0.25;
+    const upperBeltRadius = size * 0.625;
+    const upperBeltGeometry = new THREE.TorusGeometry(upperBeltRadius, beltThickness, 16, 64);
+    const upperBelt = new THREE.Mesh(upperBeltGeometry, whiteMaterial);
+    upperBelt.rotation.x = Math.PI / 2;
+    upperBelt.position.y = upperBeltY;
+    patternGroup.add(upperBelt);
+
+    // Lower band (same style, smaller radius for partial wrap effect)
+    const lowerBeltY = -size * 0.6;
+    const lowerBeltRadius = size * 0.28;
+    const lowerBeltGeometry = new THREE.TorusGeometry(lowerBeltRadius, beltThickness, 16, 64);
+    const lowerBelt = new THREE.Mesh(lowerBeltGeometry, whiteMaterial);
+    lowerBelt.rotation.x = Math.PI / 2;
+    lowerBelt.position.y = lowerBeltY;
+    patternGroup.add(lowerBelt);
+
+    // 2. Top face pattern - single center ring
+    const topY = 0.01;
+
+    // Center ring with larger radius
+    const innerRingRadius = size * 0.6;
+    const innerRingWidth = beltThickness * 2.5;
+    const innerRingGeometry = new THREE.RingGeometry(innerRingRadius - innerRingWidth/2, innerRingRadius + innerRingWidth/2, 32);
+    const innerRing = new THREE.Mesh(innerRingGeometry, whiteMaterial);
+    innerRing.rotation.x = -Math.PI / 2;
+    innerRing.position.y = topY;
+    patternGroup.add(innerRing);
+
+    // White dot in center
+    const centerDotRadius = size * 0.2;
+    const centerDotGeometry = new THREE.CircleGeometry(centerDotRadius, 32);
+    const centerDot = new THREE.Mesh(centerDotGeometry, whiteMaterial);
+    centerDot.rotation.x = -Math.PI / 2;
+    centerDot.position.y = topY + 0.001;
+    patternGroup.add(centerDot);
+
+    mesh.add(patternGroup);
+
+    return mesh;
   }
 
   private toggleAnimation(): void {
@@ -1629,13 +1844,31 @@ class Killer7Scene {
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
     // Check for intersections with diamonds
-    const intersects = this.raycaster.intersectObjects(this.diamonds);
+    const intersects = this.raycaster.intersectObjects(this.diamonds, true);
 
     if (intersects.length > 0) {
-      const clickedDiamond = intersects[0].object as THREE.Mesh;
-      const diamondIndex = clickedDiamond.userData.diamondIndex;
-      this.focusOnDiamond(diamondIndex);
-      this.updateTrackNameUI(diamondIndex);
+      // Find the diamond mesh (could be clicking on child pattern geometry)
+      let clickedDiamond: THREE.Mesh | null = null;
+      let diamondIndex = -1;
+
+      for (const intersect of intersects) {
+        let obj = intersect.object;
+        // Traverse up to find the diamond mesh
+        while (obj && diamondIndex === -1) {
+          if (obj.userData && obj.userData.diamondIndex !== undefined) {
+            clickedDiamond = obj as THREE.Mesh;
+            diamondIndex = obj.userData.diamondIndex;
+            break;
+          }
+          obj = obj.parent as THREE.Object3D;
+        }
+        if (diamondIndex !== -1) break;
+      }
+
+      if (diamondIndex !== -1) {
+        // Click acts like clicking the track - toggle track playback
+        this.toggleTrack(diamondIndex);
+      }
     }
   }
 
@@ -1892,7 +2125,7 @@ class Killer7Scene {
       // Animate spinning diamonds
       this.spinningDiamonds.forEach(diamondIndex => {
         if (this.diamonds[diamondIndex]) {
-          this.diamonds[diamondIndex].rotation.y = time * 2.0; // Spin around Y axis
+          this.diamonds[diamondIndex].rotation.y = -time * 2.0; // Spin clockwise around Y axis
         }
       });
 
