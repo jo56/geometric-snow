@@ -1885,8 +1885,9 @@ class Killer7Scene {
       }
 
       if (diamondIndex !== -1) {
-        // Click acts like clicking the track - toggle track playback
-        this.toggleTrack(diamondIndex);
+        // Click acts like clicking the track name - focus camera and update UI
+        this.focusOnDiamond(diamondIndex);
+        this.updateTrackNameUI(diamondIndex);
       }
     }
   }
