@@ -1805,26 +1805,25 @@ class Killer7Scene {
     lowerBelt.position.y = lowerBeltY;
     patternGroup.add(lowerBelt);
 
-    // 2. Top face pattern - 2D rings
+    // 2. Top face pattern - single center ring
     const topY = 0.01;
 
-    // Outer ring (closer to edge)
-    const outerRingRadius = size * 0.7;
-    const outerRingWidth = beltThickness * 2;
-    const outerRingGeometry = new THREE.RingGeometry(outerRingRadius - outerRingWidth/2, outerRingRadius + outerRingWidth/2, 32);
-    const outerRing = new THREE.Mesh(outerRingGeometry, whiteMaterial);
-    outerRing.rotation.x = -Math.PI / 2;
-    outerRing.position.y = topY;
-    patternGroup.add(outerRing);
-
-    // Inner ring
-    const innerRingRadius = size * 0.175;
-    const innerRingWidth = beltThickness * 2;
+    // Center ring with larger radius
+    const innerRingRadius = size * 0.6;
+    const innerRingWidth = beltThickness * 2.5;
     const innerRingGeometry = new THREE.RingGeometry(innerRingRadius - innerRingWidth/2, innerRingRadius + innerRingWidth/2, 32);
     const innerRing = new THREE.Mesh(innerRingGeometry, whiteMaterial);
     innerRing.rotation.x = -Math.PI / 2;
     innerRing.position.y = topY;
     patternGroup.add(innerRing);
+
+    // White dot in center
+    const centerDotRadius = size * 0.2;
+    const centerDotGeometry = new THREE.CircleGeometry(centerDotRadius, 32);
+    const centerDot = new THREE.Mesh(centerDotGeometry, whiteMaterial);
+    centerDot.rotation.x = -Math.PI / 2;
+    centerDot.position.y = topY + 0.001;
+    patternGroup.add(centerDot);
 
     mesh.add(patternGroup);
 
@@ -1845,13 +1844,31 @@ class Killer7Scene {
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
     // Check for intersections with diamonds
-    const intersects = this.raycaster.intersectObjects(this.diamonds);
+    const intersects = this.raycaster.intersectObjects(this.diamonds, true);
 
     if (intersects.length > 0) {
-      const clickedDiamond = intersects[0].object as THREE.Mesh;
-      const diamondIndex = clickedDiamond.userData.diamondIndex;
-      this.focusOnDiamond(diamondIndex);
-      this.updateTrackNameUI(diamondIndex);
+      // Find the diamond mesh (could be clicking on child pattern geometry)
+      let clickedDiamond: THREE.Mesh | null = null;
+      let diamondIndex = -1;
+
+      for (const intersect of intersects) {
+        let obj = intersect.object;
+        // Traverse up to find the diamond mesh
+        while (obj && diamondIndex === -1) {
+          if (obj.userData && obj.userData.diamondIndex !== undefined) {
+            clickedDiamond = obj as THREE.Mesh;
+            diamondIndex = obj.userData.diamondIndex;
+            break;
+          }
+          obj = obj.parent as THREE.Object3D;
+        }
+        if (diamondIndex !== -1) break;
+      }
+
+      if (diamondIndex !== -1) {
+        // Click acts like clicking the track - toggle track playback
+        this.toggleTrack(diamondIndex);
+      }
     }
   }
 
@@ -2108,7 +2125,7 @@ class Killer7Scene {
       // Animate spinning diamonds
       this.spinningDiamonds.forEach(diamondIndex => {
         if (this.diamonds[diamondIndex]) {
-          this.diamonds[diamondIndex].rotation.y = time * 2.0; // Spin around Y axis
+          this.diamonds[diamondIndex].rotation.y = -time * 2.0; // Spin clockwise around Y axis
         }
       });
 
