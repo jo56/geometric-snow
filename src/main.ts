@@ -1481,13 +1481,14 @@ class Killer7Scene {
 
   private createAdditionalDiamonds(material: THREE.ShaderMaterial, debrisMaterial: THREE.MeshBasicMaterial, baseHeight: number): void {
     // Create 6 additional diamonds scattered around the valley - lower heights
+    // Order: clockwise from bottom-left = DRIFT, STATIC, VOID, FRAGMENT, PULSE, ECHO
     const diamondPositions = [
-      { x: 80, z: 40, height: baseHeight + 5 },
-      { x: -60, z: 70, height: baseHeight + 8 },
-      { x: 45, z: -85, height: baseHeight + 3 },
-      { x: -90, z: -30, height: baseHeight + 10 },
-      { x: 20, z: 100, height: baseHeight + 6 },
-      { x: -40, z: -70, height: baseHeight + 7 }
+      { x: -90, z: -30, height: baseHeight + 10 },  // DRIFT (bottom-left area)
+      { x: -40, z: -70, height: baseHeight + 7 },   // STATIC (bottom-left)
+      { x: 45, z: -85, height: baseHeight + 3 },    // VOID (bottom-right)
+      { x: 80, z: 40, height: baseHeight + 5 },     // FRAGMENT (right)
+      { x: 20, z: 100, height: baseHeight + 6 },    // PULSE (top)
+      { x: -60, z: 70, height: baseHeight + 8 }     // ECHO (top-left)
     ];
 
     diamondPositions.forEach((pos, index) => {
