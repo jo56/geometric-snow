@@ -13,6 +13,7 @@ class Killer7Scene {
   private outlinePass!: OutlinePass;
   private geometryObjects: THREE.Object3D[] = [];
   private animatedObjects: THREE.Object3D[] = [];
+  private diamondDebris: Map<number, THREE.Object3D[]> = new Map();
   private clock = new THREE.Clock();
   private animationPaused = false;
   private diamonds: THREE.Mesh[] = [];
@@ -1435,6 +1436,9 @@ class Killer7Scene {
       this.animatedObjects.push(diamond);
       this.diamonds.push(diamond);
 
+      // Initialize debris array for this diamond
+      const debrisArray: THREE.Object3D[] = [];
+
       // Create debris field around each diamond
       const debrisCount = 8 + Math.floor(Math.random() * 7); // 8-14 debris pieces per diamond
 
@@ -1472,7 +1476,7 @@ class Killer7Scene {
         debris.receiveShadow = true;
         this.scene.add(debris);
         this.geometryObjects.push(debris);
-        this.animatedObjects.push(debris);
+        debrisArray.push(debris); // Store in conditional debris array
       }
 
       // Add some larger orbital objects around each diamond
@@ -1508,8 +1512,11 @@ class Killer7Scene {
         orbital.receiveShadow = true;
         this.scene.add(orbital);
         this.geometryObjects.push(orbital);
-        this.animatedObjects.push(orbital);
+        debrisArray.push(orbital); // Store in conditional debris array
       }
+
+      // Store debris array for this diamond
+      this.diamondDebris.set(index + 1, debrisArray);
     });
 
     // Add special structures under all diamonds
@@ -1863,6 +1870,16 @@ class Killer7Scene {
   }
 
   private onMouseClick(event: MouseEvent): void {
+    // Check if click is on music player UI
+    const musicPlayer = document.getElementById('music-player');
+    if (musicPlayer) {
+      const rect = musicPlayer.getBoundingClientRect();
+      if (event.clientX >= rect.left && event.clientX <= rect.right &&
+          event.clientY >= rect.top && event.clientY <= rect.bottom) {
+        return; // Don't process diamond clicks if clicking on menu
+      }
+    }
+
     // Calculate mouse position in normalized device coordinates
     this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -1927,8 +1944,7 @@ class Killer7Scene {
   }
 
   private resetToOverview(): void {
-    // Stop any currently playing music
-    this.stopCurrentTrack();
+    // Don't stop the currently playing track anymore
 
     // Clear all UI selections
     this.clearUISelections();
@@ -2153,6 +2169,44 @@ class Killer7Scene {
       this.spinningDiamonds.forEach(diamondIndex => {
         if (this.diamonds[diamondIndex]) {
           this.diamonds[diamondIndex].rotation.y = -time * 2.0; // Spin clockwise around Y axis
+        }
+      });
+
+      // Animate conditional debris (only if track is playing)
+      this.spinningDiamonds.forEach(diamondIndex => {
+        const debris = this.diamondDebris.get(diamondIndex);
+        if (debris) {
+          debris.forEach((obj, i) => {
+            if (!obj) return;
+
+            if (obj.geometry.type === 'BoxGeometry') {
+              // Spinning cubes
+              obj.rotation.x = time * 0.5 + i;
+              obj.rotation.y = time * 0.7 + i;
+              obj.position.y += Math.sin(time * 1.5 + i * 2) * 0.01;
+            } else if (obj.geometry.type === 'SphereGeometry') {
+              // Floating spheres - slow bob
+              obj.position.y += Math.sin(time * 0.8 + i * 3) * 0.02;
+              obj.rotation.z = time * 0.3 + i;
+            } else if (obj.geometry.type === 'TetrahedronGeometry' || obj.geometry.type === 'ConeGeometry') {
+              // Pyramids - rotate and slight movement
+              obj.rotation.y = time * 1.2 + i;
+              obj.position.x += Math.sin(time * 0.6 + i * 4) * 0.01;
+            } else if (obj.geometry.type === 'TorusGeometry') {
+              // Rings - complex rotation
+              obj.rotation.x = time * 0.4 + i;
+              obj.rotation.y = time * 0.6 + i;
+              obj.rotation.z = time * 0.2 + i;
+            } else if (obj.geometry.type === 'OctahedronGeometry' || obj.geometry.type === 'DodecahedronGeometry' || obj.geometry.type === 'IcosahedronGeometry') {
+              // Other polyhedra - rotate
+              obj.rotation.x = time * 0.8 + i;
+              obj.rotation.y = time * 0.5 + i;
+            } else if (obj.geometry.type === 'CylinderGeometry') {
+              // Cylinders - rotate and bob
+              obj.rotation.z = time * 0.7 + i;
+              obj.position.y += Math.sin(time * 1.0 + i * 2) * 0.015;
+            }
+          });
         }
       });
 
