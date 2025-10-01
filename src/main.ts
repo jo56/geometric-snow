@@ -13,17 +13,19 @@ class Killer7Scene {
   private outlinePass!: OutlinePass;
   private geometryObjects: THREE.Object3D[] = [];
   private animatedObjects: THREE.Object3D[] = [];
+  private diamondDebris: Map<number, THREE.Object3D[]> = new Map();
   private clock = new THREE.Clock();
   private animationPaused = false;
   private diamonds: THREE.Mesh[] = [];
+  private diamondLights: Map<number, THREE.PointLight> = new Map();
+  private diamondAuras: Map<number, THREE.Points> = new Map();
   private raycaster = new THREE.Raycaster();
   private mouse = new THREE.Vector2();
   private spinningDiamonds = new Set<number>();
-  private currentAudio: HTMLAudioElement | null = null;
-  private currentTrack: number = -1;
+  private playingAudios: Map<number, HTMLAudioElement> = new Map();
+  private focusedDiamond: number = -1;
   private particles!: THREE.Points;
   private particleVelocities!: Float32Array;
-  private loadingProgress = 0;
   private isLoaded = false;
 
   constructor() {
@@ -76,8 +78,7 @@ class Killer7Scene {
     }, 500);
   }
 
-  private updateLoadingProgress(progress: number, text: string): void {
-    this.loadingProgress = progress;
+  private updateLoadingProgress(_progress: number, _text: string): void {
     // Loading spinner doesn't need progress updates
   }
 
@@ -97,6 +98,14 @@ class Killer7Scene {
     // Scene
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x000000); // Black background
+
+    // Add ambient light for diamond patterns only
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    this.scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.3);
+    directionalLight.position.set(5, 10, 5);
+    this.scene.add(directionalLight);
 
     // Add white ground plane with toon shading (created after materials are available)
     // This will be added in createSceneAsync after materials are set up
@@ -163,7 +172,9 @@ class Killer7Scene {
 
     // Animation toggle controls and camera switching
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' || e.key === 'r' || e.key === 'R'|| e.key === 'q' || e.key === 'Q') {
+      if (e.key === 'q' || e.key === 'Q') {
+        this.stopAllTracks();
+      } else if (e.key === 'Escape' || e.key === 'r' || e.key === 'R') {
         this.resetToOverview();
       } else if (e.key === 'p' || e.key === 'P') {
         // Toggle play/pause for currently selected track
@@ -173,18 +184,24 @@ class Killer7Scene {
           this.toggleTrack(trackIndex);
         }
       } else if (e.key >= '1' && e.key <= '7') {
-        // Number keys for track selection - toggle if already selected
+        // Number keys for play/pause without camera focus
         const trackIndex = parseInt(e.key) - 1;
-        const trackElement = document.querySelector(`.track-name[data-diamond="${trackIndex}"]`);
-        const isCurrentlyActive = trackElement?.classList.contains('active');
-
-        if (isCurrentlyActive) {
-          // If already selected, go back to overview
-          this.resetToOverview();
-        } else {
-          // Otherwise, focus on this diamond
-          this.focusOnDiamond(trackIndex);
-          this.updateTrackNameUI(trackIndex);
+        this.toggleTrack(trackIndex, false);
+      } else if ('zxcvbnm'.includes(e.key.toLowerCase())) {
+        // zxcvbnm keys map to tracks 0-6 (1-7) - camera + highlight, no play/pause
+        const keyMap: { [key: string]: number } = {
+          'z': 0, 'x': 1, 'c': 2, 'v': 3, 'b': 4, 'n': 5, 'm': 6
+        };
+        const trackIndex = keyMap[e.key.toLowerCase()];
+        if (trackIndex !== undefined) {
+          if (trackIndex === this.focusedDiamond) {
+            // If pressing key for currently focused diamond, go back to overview
+            this.resetToOverview();
+          } else {
+            // Otherwise, focus on this diamond
+            this.focusOnDiamond(trackIndex);
+            this.setTrackNameHighlight(trackIndex);
+          }
         }
       } else if (e.key === 'e' || e.key === 'E') {
         // Move camera up (strafe vertically)
@@ -438,7 +455,7 @@ class Killer7Scene {
     return new THREE.Mesh(mountainGeometry, material);
   }
 
-  private createHorizonMountains(material: THREE.ShaderMaterial): void {
+  private createHorizonMountains(_material: THREE.ShaderMaterial): void {
     // Dense mountain system to create a complete mountain wall - positioned far from open field
     const mountainMaterial = this.createMountainMaterial();
 
@@ -1010,7 +1027,7 @@ class Killer7Scene {
     this.scene.add(stars);
   }
 
-  private createWhiteGroundPlane(material: THREE.ShaderMaterial): void {
+  private createWhiteGroundPlane(_material: THREE.ShaderMaterial): void {
     // Create inverted toon material for white ground (bright base, dark shadows)
     const groundMaterial = new THREE.ShaderMaterial({
       uniforms: {
@@ -1095,6 +1112,40 @@ class Killer7Scene {
     // Store references for animation
     this.particles = particles;
     this.particleVelocities = velocities;
+  }
+
+  private createDiamondAura(): THREE.Points {
+    // Create radiant particle aura around diamond
+    const particleCount = 150;
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+
+    // Create sphere of particles around diamond
+    for (let i = 0; i < particleCount; i++) {
+      const i3 = i * 3;
+
+      // Random spherical distribution
+      const radius = 8 + Math.random() * 6; // Particles between radius 8-14
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+
+      positions[i3] = radius * Math.sin(phi) * Math.cos(theta);
+      positions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+      positions[i3 + 2] = radius * Math.cos(phi);
+    }
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+    const material = new THREE.PointsMaterial({
+      color: 0xffffff,
+      size: 1.5,
+      transparent: true,
+      opacity: 0.8,
+      blending: THREE.AdditiveBlending, // Additive blending for glow effect
+      sizeAttenuation: true
+    });
+
+    return new THREE.Points(geometry, material);
   }
 
   private createBackground(): void {
@@ -1247,26 +1298,14 @@ class Killer7Scene {
       this.animatedObjects.push(debris);
     }
 
-    // Central focal point - massive floating diamond
-    const diamondMaterial = this.createDiamondMaterial();
-    const centerPiece = this.createHalfDiamond(9, diamondMaterial); // Increased size
-    centerPiece.position.set(0, baseHeight + 15, 0); // Higher in the sky
-    centerPiece.castShadow = true;
-    centerPiece.receiveShadow = true;
-    centerPiece.userData = { diamondIndex: 0 }; // Mark as clickable diamond
-    this.scene.add(centerPiece);
-    this.geometryObjects.push(centerPiece);
-    this.animatedObjects.push(centerPiece);
-    this.diamonds.push(centerPiece);
-
-    // Add structures underneath the central diamond
+    // Add structures underneath the central diamond position
     this.createCenterStructures(material, debrisMaterial);
 
-    // Additional floating diamonds with their own debris fields
+    // Create all diamonds (including center) with their own debris fields
     this.createAdditionalDiamonds(material, debrisMaterial, baseHeight);
   }
 
-  private createCenterStructures(material: THREE.ShaderMaterial, debrisMaterial: THREE.MeshBasicMaterial): void {
+  private createCenterStructures(material: THREE.ShaderMaterial, debrisMaterial: THREE.ShaderMaterial): void {
     // Create architectural structures underneath the central diamond
 
     // 1. Central pedestal platform
@@ -1411,29 +1450,46 @@ class Killer7Scene {
     }
   }
 
-  private createAdditionalDiamonds(material: THREE.ShaderMaterial, debrisMaterial: THREE.MeshBasicMaterial, baseHeight: number): void {
-    // Create 6 additional diamonds scattered around the valley - lower heights
+  private createAdditionalDiamonds(material: THREE.ShaderMaterial, debrisMaterial: THREE.ShaderMaterial, baseHeight: number): void {
+    // Create all 7 diamonds including center
+    // Order: DRIFT, STATIC, VOID, NEXUS (center), FRAGMENT, PULSE, ECHO
     const diamondPositions = [
-      { x: 80, z: 40, height: baseHeight + 5 },
-      { x: -60, z: 70, height: baseHeight + 8 },
-      { x: 45, z: -85, height: baseHeight + 3 },
-      { x: -90, z: -30, height: baseHeight + 10 },
-      { x: 20, z: 100, height: baseHeight + 6 },
-      { x: -40, z: -70, height: baseHeight + 7 }
+      { x: -90, z: -30, height: baseHeight + 10, size: 7 },   // 0: DRIFT (bottom-left area)
+      { x: -40, z: -70, height: baseHeight + 7, size: 7 },    // 1: STATIC (bottom-left)
+      { x: 45, z: -85, height: baseHeight + 3, size: 7 },     // 2: VOID (bottom-right)
+      { x: 0, z: 0, height: baseHeight + 15, size: 9 },       // 3: NEXUS (center - larger)
+      { x: 80, z: 40, height: baseHeight + 5, size: 7 },      // 4: FRAGMENT (right)
+      { x: 20, z: 100, height: baseHeight + 6, size: 7 },     // 5: PULSE (top)
+      { x: -60, z: 70, height: baseHeight + 8, size: 7 }      // 6: ECHO (top-left)
     ];
 
     diamondPositions.forEach((pos, index) => {
-      // Create diamond (same size as central diamond)
-      const diamondSize = 7; // Same size as central diamond
-      const diamond = this.createHalfDiamond(diamondSize, this.createDiamondMaterial());
+      const diamond = this.createHalfDiamond(pos.size, this.createDiamondMaterial());
       diamond.position.set(pos.x, pos.height, pos.z);
       diamond.castShadow = true;
       diamond.receiveShadow = true;
-      diamond.userData = { diamondIndex: index + 1 }; // Mark as clickable diamond
+      diamond.userData = { diamondIndex: index };
       this.scene.add(diamond);
       this.geometryObjects.push(diamond);
       this.animatedObjects.push(diamond);
       this.diamonds.push(diamond);
+
+      // Create point light for this diamond (initially off)
+      const lightDistance = index === 3 ? 50 : 40; // Center diamond has larger light distance
+      const light = new THREE.PointLight(0xffffff, 0, lightDistance);
+      light.position.set(pos.x, pos.height, pos.z);
+      this.scene.add(light);
+      this.diamondLights.set(index, light);
+
+      // Create aura particle system for this diamond
+      const aura = this.createDiamondAura();
+      aura.position.set(pos.x, pos.height, pos.z);
+      aura.visible = false; // Initially hidden
+      this.scene.add(aura);
+      this.diamondAuras.set(index, aura);
+
+      // Initialize debris array for this diamond
+      const debrisArray: THREE.Object3D[] = [];
 
       // Create debris field around each diamond
       const debrisCount = 8 + Math.floor(Math.random() * 7); // 8-14 debris pieces per diamond
@@ -1472,7 +1528,7 @@ class Killer7Scene {
         debris.receiveShadow = true;
         this.scene.add(debris);
         this.geometryObjects.push(debris);
-        this.animatedObjects.push(debris);
+        debrisArray.push(debris); // Store in conditional debris array
       }
 
       // Add some larger orbital objects around each diamond
@@ -1508,8 +1564,11 @@ class Killer7Scene {
         orbital.receiveShadow = true;
         this.scene.add(orbital);
         this.geometryObjects.push(orbital);
-        this.animatedObjects.push(orbital);
+        debrisArray.push(orbital); // Store in conditional debris array
       }
+
+      // Store debris array for this diamond
+      this.diamondDebris.set(index + 1, debrisArray);
     });
 
     // Add special structures under all diamonds
@@ -1518,12 +1577,12 @@ class Killer7Scene {
     });
   }
 
-  private createDiamondStructures(material: THREE.ShaderMaterial, debrisMaterial: THREE.MeshBasicMaterial, position: { x: number, z: number, height: number }, diamondIndex: number): void {
+  private createDiamondStructures(material: THREE.ShaderMaterial, debrisMaterial: THREE.ShaderMaterial, position: { x: number, z: number, height: number }, _diamondIndex: number): void {
     // Create consistent debris piles under each diamond
     this.createDebrisPile(material, debrisMaterial, position);
   }
 
-  private createDebrisPile(material: THREE.ShaderMaterial, debrisMaterial: THREE.MeshBasicMaterial, position: { x: number, z: number, height: number }): void {
+  private createDebrisPile(material: THREE.ShaderMaterial, debrisMaterial: THREE.ShaderMaterial, position: { x: number, z: number, height: number }): void {
     // Create debris pile like the original ground structures
     const pileSize = 8 + Math.floor(Math.random() * 10); // 8-17 blocks per pile
     const baseSize = 3 + Math.random() * 2;
@@ -1624,9 +1683,9 @@ class Killer7Scene {
           vec3 normal = normalize(vNormal);
           float NdotL = max(dot(normal, lightDirection), 0.0);
 
-          // Binary step with better contrast against light gray background
+          // Binary step - pure black and white
           float shade = step(0.5, NdotL);
-          vec3 color = mix(vec3(0.1), vec3(0.9), shade);  // Darker contrast for visibility
+          vec3 color = mix(vec3(0.0), vec3(1.0), shade);  // Pure black and white
 
           gl_FragColor = vec4(color, 1.0);
         }
@@ -1702,6 +1761,7 @@ class Killer7Scene {
     });
   }
 
+  // @ts-expect-error - Unused but kept for potential future use
   private createDebrisMaterial(): THREE.ShaderMaterial {
     return new THREE.ShaderMaterial({
       uniforms: {},
@@ -1734,7 +1794,7 @@ class Killer7Scene {
     });
   }
 
-  private createHalfDiamond(size: number, material: THREE.Material): THREE.Mesh {
+  private createHalfDiamond(size: number, _material: THREE.Material): THREE.Mesh {
     const geometry = new THREE.BufferGeometry();
 
     const vertices = new Float32Array([
@@ -1857,12 +1917,23 @@ class Killer7Scene {
     return mesh;
   }
 
+  // @ts-expect-error - Unused but kept for potential future use
   private toggleAnimation(): void {
     this.animationPaused = !this.animationPaused;
     console.log(`Animation ${this.animationPaused ? 'paused' : 'resumed'}`);
   }
 
   private onMouseClick(event: MouseEvent): void {
+    // Check if click is on music player UI
+    const musicPlayer = document.getElementById('music-player');
+    if (musicPlayer) {
+      const rect = musicPlayer.getBoundingClientRect();
+      if (event.clientX >= rect.left && event.clientX <= rect.right &&
+          event.clientY >= rect.top && event.clientY <= rect.bottom) {
+        return; // Don't process diamond clicks if clicking on menu
+      }
+    }
+
     // Calculate mouse position in normalized device coordinates
     this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -1875,7 +1946,6 @@ class Killer7Scene {
 
     if (intersects.length > 0) {
       // Find the diamond mesh (could be clicking on child pattern geometry)
-      let clickedDiamond: THREE.Mesh | null = null;
       let diamondIndex = -1;
 
       for (const intersect of intersects) {
@@ -1883,7 +1953,6 @@ class Killer7Scene {
         // Traverse up to find the diamond mesh
         while (obj && diamondIndex === -1) {
           if (obj.userData && obj.userData.diamondIndex !== undefined) {
-            clickedDiamond = obj as THREE.Mesh;
             diamondIndex = obj.userData.diamondIndex;
             break;
           }
@@ -1893,9 +1962,14 @@ class Killer7Scene {
       }
 
       if (diamondIndex !== -1) {
-        // Click acts like clicking the track name - focus camera and update UI
-        this.focusOnDiamond(diamondIndex);
-        this.updateTrackNameUI(diamondIndex);
+        // If clicking on already focused diamond, reset to overview
+        if (diamondIndex === this.focusedDiamond) {
+          this.resetToOverview();
+        } else {
+          // Click acts like clicking the track name - focus camera and update UI
+          this.focusOnDiamond(diamondIndex);
+          this.setTrackNameHighlight(diamondIndex);
+        }
       }
     }
   }
@@ -1927,8 +2001,10 @@ class Killer7Scene {
   }
 
   private resetToOverview(): void {
-    // Stop any currently playing music
-    this.stopCurrentTrack();
+    // Don't stop the currently playing track anymore
+
+    // Clear focused diamond
+    this.focusedDiamond = -1;
 
     // Clear all UI selections
     this.clearUISelections();
@@ -1986,6 +2062,7 @@ class Killer7Scene {
     animate();
   }
 
+  // @ts-expect-error - Unused but kept for potential future use
   private fadeInScene(): void {
     // Fade in the canvas container and music player simultaneously
     const canvasContainer = document.getElementById('canvas-container');
@@ -2023,33 +2100,53 @@ class Killer7Scene {
     document.querySelectorAll('.track-name').forEach(trackName => {
       trackName.addEventListener('click', (e) => {
         const diamondIndex = parseInt((e.target as HTMLElement).dataset.diamond || '0');
-        const isCurrentlyActive = (e.target as HTMLElement).classList.contains('active');
 
-        if (isCurrentlyActive) {
-          // If clicking on already selected track, go back to overview
+        if (diamondIndex === this.focusedDiamond) {
+          // If clicking on already focused track, go back to overview
           this.resetToOverview();
         } else {
           // Otherwise, focus on this diamond
           this.focusOnDiamond(diamondIndex);
-          this.updateTrackNameUI(diamondIndex);
+          this.setTrackNameHighlight(diamondIndex);
         }
       });
     });
 
-    // Play button click handlers (spinning + audio + camera view)
+    // Play button click handlers (spinning + audio, no camera)
     document.querySelectorAll('.play-button').forEach(playButton => {
       playButton.addEventListener('click', (e) => {
         const diamondIndex = parseInt((e.target as HTMLElement).dataset.diamond || '0');
-        this.toggleTrack(diamondIndex);
+        this.toggleTrack(diamondIndex, false);
       });
     });
   }
 
   private updateTrackNameUI(diamondIndex: number): void {
-    // Remove active class from all track names
-    document.querySelectorAll('.track-name').forEach(el => el.classList.remove('active'));
-    // Add active class to current track name
-    document.querySelector(`.track-name[data-diamond="${diamondIndex}"]`)?.classList.add('active');
+    // Update track name UI - keep highlight if it's the focused diamond
+    const trackName = document.querySelector(`.track-name[data-diamond="${diamondIndex}"]`);
+    if (trackName) {
+      // Keep active if it's the focused diamond, regardless of playing status
+      if (diamondIndex === this.focusedDiamond) {
+        trackName.classList.add('active');
+      } else if (!this.playingAudios.has(diamondIndex)) {
+        trackName.classList.remove('active');
+      }
+    }
+  }
+
+  private setTrackNameHighlight(diamondIndex: number): void {
+    // Track which diamond is focused
+    this.focusedDiamond = diamondIndex;
+
+    // Remove active from all tracks, then add to the focused one
+    document.querySelectorAll('.track-name').forEach(el => {
+      const elIndex = parseInt((el as HTMLElement).dataset.diamond || '0');
+      if (elIndex === diamondIndex) {
+        el.classList.add('active');
+      } else {
+        el.classList.remove('active');
+      }
+    });
   }
 
   private updatePlayButtonUI(diamondIndex: number, isPlaying: boolean): void {
@@ -2064,54 +2161,61 @@ class Killer7Scene {
     }
   }
 
-  private toggleTrack(diamondIndex: number): void {
+  private toggleTrack(diamondIndex: number, focusCamera: boolean = true): void {
     const audio = document.getElementById(`audio-${diamondIndex}`) as HTMLAudioElement;
     if (!audio) return;
 
     // If this track is already playing, pause it
-    if (this.currentTrack === diamondIndex && this.currentAudio && !this.currentAudio.paused) {
-      this.stopCurrentTrack();
+    if (this.playingAudios.has(diamondIndex)) {
+      this.stopTrack(diamondIndex);
       return;
     }
 
-    // Stop any currently playing track
-    this.stopCurrentTrack();
-
     // Start new track
-    this.currentTrack = diamondIndex;
-    this.currentAudio = audio;
+    this.playingAudios.set(diamondIndex, audio);
 
     // Start spinning diamond
     this.spinningDiamonds.add(diamondIndex);
 
-    // Focus camera on diamond
-    this.focusOnDiamond(diamondIndex);
-
-    // Update UI
-    this.updateTrackNameUI(diamondIndex);
-    this.updatePlayButtonUI(diamondIndex, true);
+    // Focus camera on diamond (optional)
+    if (focusCamera) {
+      this.focusOnDiamond(diamondIndex);
+      this.setTrackNameHighlight(diamondIndex);
+    }
 
     // Play audio
     audio.currentTime = 0;
     audio.play().catch(e => console.log('Audio play failed:', e));
+
+    // Update UI (only needed if not focusing camera, since setTrackNameHighlight handles it)
+    if (!focusCamera) {
+      this.updateTrackNameUI(diamondIndex);
+    }
+    this.updatePlayButtonUI(diamondIndex, true);
   }
 
-  private stopCurrentTrack(): void {
-    if (this.currentAudio) {
-      this.currentAudio.pause();
-      this.currentAudio.currentTime = 0;
+  private stopTrack(diamondIndex: number): void {
+    const audio = this.playingAudios.get(diamondIndex);
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+      this.playingAudios.delete(diamondIndex);
     }
 
-    if (this.currentTrack >= 0) {
-      // Stop spinning diamond
-      this.spinningDiamonds.delete(this.currentTrack);
+    // Stop spinning diamond
+    this.spinningDiamonds.delete(diamondIndex);
 
-      // Update UI
-      this.updatePlayButtonUI(this.currentTrack, false);
-    }
+    // Update UI
+    this.updateTrackNameUI(diamondIndex);
+    this.updatePlayButtonUI(diamondIndex, false);
+  }
 
-    this.currentAudio = null;
-    this.currentTrack = -1;
+  private stopAllTracks(): void {
+    // Stop all currently playing tracks
+    const playingIndices = Array.from(this.playingAudios.keys());
+    playingIndices.forEach(index => {
+      this.stopTrack(index);
+    });
   }
 
   private animate = (): void => {
@@ -2126,7 +2230,7 @@ class Killer7Scene {
       const animatedCount = Math.min(this.animatedObjects.length, 50); // Limit animated objects for performance
       for (let i = 0; i < animatedCount; i++) {
         const obj = this.animatedObjects[i];
-        if (!obj) continue;
+        if (!obj || !(obj instanceof THREE.Mesh)) continue;
 
         if (obj.geometry.type === 'BoxGeometry') {
           // Spinning cubes
@@ -2149,12 +2253,90 @@ class Killer7Scene {
         }
       }
 
-      // Animate spinning diamonds
-      this.spinningDiamonds.forEach(diamondIndex => {
-        if (this.diamonds[diamondIndex]) {
-          this.diamonds[diamondIndex].rotation.y = -time * 2.0; // Spin clockwise around Y axis
+      // Animate spinning diamonds with radiance aura effect
+      this.diamonds.forEach((diamond, index) => {
+        const aura = this.diamondAuras.get(index);
+
+        if (this.spinningDiamonds.has(index)) {
+          diamond.rotation.y = -time * 2.0; // Spin clockwise around Y axis
+
+          // Show and animate aura
+          if (aura) {
+            aura.visible = true;
+            aura.rotation.y = time * 0.5;
+            aura.rotation.x = time * 0.3;
+
+            // Pulse aura opacity
+            const pulseFactor = 0.6 + Math.sin(time * 2) * 0.2;
+            (aura.material as THREE.PointsMaterial).opacity = pulseFactor;
+          }
+
+          // Brighten white patterns
+          const glowAmount = 1.4 + Math.sin(time * 2) * 0.4;
+          diamond.traverse((child) => {
+            if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshBasicMaterial) {
+              if (child.material.color.r > 0.5) {
+                const brightColor = new THREE.Color(0xffffff);
+                brightColor.multiplyScalar(glowAmount);
+                child.material.color.copy(brightColor);
+              }
+            }
+          });
+        } else {
+          // Hide aura when not playing
+          if (aura) {
+            aura.visible = false;
+          }
+
+          // Reset to normal white
+          diamond.traverse((child) => {
+            if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshBasicMaterial) {
+              if (child.material.color.r > 0.5 || child.material.color.r > 1.0) {
+                child.material.color.set(0xffffff);
+              }
+            }
+          });
         }
       });
+
+      // Animate conditional debris (only if track is playing)
+      this.spinningDiamonds.forEach(diamondIndex => {
+        const debris = this.diamondDebris.get(diamondIndex);
+        if (debris) {
+          debris.forEach((obj, i) => {
+            if (!obj || !(obj instanceof THREE.Mesh)) return;
+
+            if (obj.geometry.type === 'BoxGeometry') {
+              // Spinning cubes
+              obj.rotation.x = time * 0.5 + i;
+              obj.rotation.y = time * 0.7 + i;
+              obj.position.y += Math.sin(time * 1.5 + i * 2) * 0.01;
+            } else if (obj.geometry.type === 'SphereGeometry') {
+              // Floating spheres - slow bob
+              obj.position.y += Math.sin(time * 0.8 + i * 3) * 0.02;
+              obj.rotation.z = time * 0.3 + i;
+            } else if (obj.geometry.type === 'TetrahedronGeometry' || obj.geometry.type === 'ConeGeometry') {
+              // Pyramids - rotate and slight movement
+              obj.rotation.y = time * 1.2 + i;
+              obj.position.x += Math.sin(time * 0.6 + i * 4) * 0.01;
+            } else if (obj.geometry.type === 'TorusGeometry') {
+              // Rings - complex rotation
+              obj.rotation.x = time * 0.4 + i;
+              obj.rotation.y = time * 0.6 + i;
+              obj.rotation.z = time * 0.2 + i;
+            } else if (obj.geometry.type === 'OctahedronGeometry' || obj.geometry.type === 'DodecahedronGeometry' || obj.geometry.type === 'IcosahedronGeometry') {
+              // Other polyhedra - rotate
+              obj.rotation.x = time * 0.8 + i;
+              obj.rotation.y = time * 0.5 + i;
+            } else if (obj.geometry.type === 'CylinderGeometry') {
+              // Cylinders - rotate and bob
+              obj.rotation.z = time * 0.7 + i;
+              obj.position.y += Math.sin(time * 1.0 + i * 2) * 0.015;
+            }
+          });
+        }
+      });
+
 
       // Smooth particle animation (every frame)
       if (this.particles && this.particleVelocities) {
