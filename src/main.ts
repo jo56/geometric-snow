@@ -26,7 +26,6 @@ class Killer7Scene {
   private focusedDiamond: number = -1;
   private particles!: THREE.Points;
   private particleVelocities!: Float32Array;
-  private loadingProgress = 0;
   private isLoaded = false;
 
   constructor() {
@@ -79,8 +78,7 @@ class Killer7Scene {
     }, 500);
   }
 
-  private updateLoadingProgress(progress: number, text: string): void {
-    this.loadingProgress = progress;
+  private updateLoadingProgress(_progress: number, _text: string): void {
     // Loading spinner doesn't need progress updates
   }
 
@@ -457,7 +455,7 @@ class Killer7Scene {
     return new THREE.Mesh(mountainGeometry, material);
   }
 
-  private createHorizonMountains(material: THREE.ShaderMaterial): void {
+  private createHorizonMountains(_material: THREE.ShaderMaterial): void {
     // Dense mountain system to create a complete mountain wall - positioned far from open field
     const mountainMaterial = this.createMountainMaterial();
 
@@ -1029,7 +1027,7 @@ class Killer7Scene {
     this.scene.add(stars);
   }
 
-  private createWhiteGroundPlane(material: THREE.ShaderMaterial): void {
+  private createWhiteGroundPlane(_material: THREE.ShaderMaterial): void {
     // Create inverted toon material for white ground (bright base, dark shadows)
     const groundMaterial = new THREE.ShaderMaterial({
       uniforms: {
@@ -1579,7 +1577,7 @@ class Killer7Scene {
     });
   }
 
-  private createDiamondStructures(material: THREE.ShaderMaterial, debrisMaterial: THREE.ShaderMaterial, position: { x: number, z: number, height: number }, diamondIndex: number): void {
+  private createDiamondStructures(material: THREE.ShaderMaterial, debrisMaterial: THREE.ShaderMaterial, position: { x: number, z: number, height: number }, _diamondIndex: number): void {
     // Create consistent debris piles under each diamond
     this.createDebrisPile(material, debrisMaterial, position);
   }
@@ -1763,6 +1761,7 @@ class Killer7Scene {
     });
   }
 
+  // @ts-expect-error - Unused but kept for potential future use
   private createDebrisMaterial(): THREE.ShaderMaterial {
     return new THREE.ShaderMaterial({
       uniforms: {},
@@ -1795,7 +1794,7 @@ class Killer7Scene {
     });
   }
 
-  private createHalfDiamond(size: number, material: THREE.Material): THREE.Mesh {
+  private createHalfDiamond(size: number, _material: THREE.Material): THREE.Mesh {
     const geometry = new THREE.BufferGeometry();
 
     const vertices = new Float32Array([
@@ -1918,6 +1917,7 @@ class Killer7Scene {
     return mesh;
   }
 
+  // @ts-expect-error - Unused but kept for potential future use
   private toggleAnimation(): void {
     this.animationPaused = !this.animationPaused;
     console.log(`Animation ${this.animationPaused ? 'paused' : 'resumed'}`);
@@ -1946,7 +1946,6 @@ class Killer7Scene {
 
     if (intersects.length > 0) {
       // Find the diamond mesh (could be clicking on child pattern geometry)
-      let clickedDiamond: THREE.Mesh | null = null;
       let diamondIndex = -1;
 
       for (const intersect of intersects) {
@@ -1954,7 +1953,6 @@ class Killer7Scene {
         // Traverse up to find the diamond mesh
         while (obj && diamondIndex === -1) {
           if (obj.userData && obj.userData.diamondIndex !== undefined) {
-            clickedDiamond = obj as THREE.Mesh;
             diamondIndex = obj.userData.diamondIndex;
             break;
           }
@@ -2064,6 +2062,7 @@ class Killer7Scene {
     animate();
   }
 
+  // @ts-expect-error - Unused but kept for potential future use
   private fadeInScene(): void {
     // Fade in the canvas container and music player simultaneously
     const canvasContainer = document.getElementById('canvas-container');
@@ -2231,7 +2230,7 @@ class Killer7Scene {
       const animatedCount = Math.min(this.animatedObjects.length, 50); // Limit animated objects for performance
       for (let i = 0; i < animatedCount; i++) {
         const obj = this.animatedObjects[i];
-        if (!obj) continue;
+        if (!obj || !(obj instanceof THREE.Mesh)) continue;
 
         if (obj.geometry.type === 'BoxGeometry') {
           // Spinning cubes
@@ -2305,7 +2304,7 @@ class Killer7Scene {
         const debris = this.diamondDebris.get(diamondIndex);
         if (debris) {
           debris.forEach((obj, i) => {
-            if (!obj) return;
+            if (!obj || !(obj instanceof THREE.Mesh)) return;
 
             if (obj.geometry.type === 'BoxGeometry') {
               // Spinning cubes
