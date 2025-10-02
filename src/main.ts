@@ -22,7 +22,9 @@ class Killer7Scene {
   private raycaster = new THREE.Raycaster();
   private mouse = new THREE.Vector2();
   private spinningDiamonds = new Set<number>();
-  private playingAudios: Map<number, HTMLAudioElement> = new Map();
+  private listener!: THREE.AudioListener;
+  private playingAudios: Map<number, THREE.PositionalAudio> = new Map();
+  private positionalAudios: Map<number, THREE.PositionalAudio> = new Map();
   private focusedDiamond: number = -1;
   private particles!: THREE.Points;
   private particleVelocities!: Float32Array;
@@ -90,8 +92,53 @@ class Killer7Scene {
       setTimeout(() => {
         loadingScreen.style.display = 'none';
         this.isLoaded = true;
+        // Show controls tooltip after loading
+        this.showControlsTooltip();
       }, 1500);
     }
+  }
+
+  private showControlsTooltip(): void {
+    const tooltip = document.getElementById('controls-tooltip');
+    if (tooltip) {
+      tooltip.classList.add('visible');
+      this.setupTooltipClickOutside();
+    }
+  }
+
+  private hideControlsTooltip(): void {
+    const tooltip = document.getElementById('controls-tooltip');
+    if (tooltip) {
+      tooltip.classList.remove('visible');
+    }
+  }
+
+  private toggleControlsTooltip(): void {
+    const tooltip = document.getElementById('controls-tooltip');
+    if (tooltip) {
+      if (tooltip.classList.contains('visible')) {
+        this.hideControlsTooltip();
+      } else {
+        this.showControlsTooltip();
+      }
+    }
+  }
+
+  private setupTooltipClickOutside(): void {
+    const tooltip = document.getElementById('controls-tooltip');
+    if (!tooltip) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (tooltip && !tooltip.contains(e.target as Node) && tooltip.classList.contains('visible')) {
+        this.hideControlsTooltip();
+        document.removeEventListener('click', handleClickOutside);
+      }
+    };
+
+    // Add listener after a short delay to prevent immediate dismissal
+    setTimeout(() => {
+      document.addEventListener('click', handleClickOutside);
+    }, 100);
   }
 
   private init(): void {
@@ -114,6 +161,10 @@ class Killer7Scene {
     this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
     // Start with a different position for the animation to work
     this.camera.position.set(20, 20, 20);
+
+    // Audio listener for spatial audio
+    this.listener = new THREE.AudioListener();
+    this.camera.add(this.listener);
 
     // Optimized Renderer
     this.renderer = new THREE.WebGLRenderer({
@@ -172,9 +223,19 @@ class Killer7Scene {
 
     // Animation toggle controls and camera switching
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'q' || e.key === 'Q') {
+      if (e.key === 'h' || e.key === 'H') {
+        this.toggleControlsTooltip();
+      } else if (e.key === 'Escape') {
+        // ESC hides tooltip if visible, otherwise resets camera
+        const tooltip = document.getElementById('controls-tooltip');
+        if (tooltip && tooltip.classList.contains('visible')) {
+          this.hideControlsTooltip();
+        } else {
+          this.resetToOverview();
+        }
+      } else if (e.key === 'q' || e.key === 'Q') {
         this.stopAllTracks();
-      } else if (e.key === 'Escape' || e.key === 'r' || e.key === 'R') {
+      } else if (e.key === 'r' || e.key === 'R') {
         this.resetToOverview();
       } else if (e.key === 'p' || e.key === 'P') {
         // Toggle play/pause for currently selected track
@@ -185,12 +246,19 @@ class Killer7Scene {
         }
       } else if (e.key >= '1' && e.key <= '7') {
         // Number keys for play/pause without camera focus
-        const trackIndex = parseInt(e.key) - 1;
-        this.toggleTrack(trackIndex, false);
+        // 1=NEXUS(3), 2=DRIFT(0), 3=STATIC(1), 4=VOID(2), 5=FRAGMENT(4), 6=PULSE(5), 7=ECHO(6)
+        const numberKeyMap: { [key: string]: number } = {
+          '1': 3, '2': 0, '3': 1, '4': 2, '5': 4, '6': 5, '7': 6
+        };
+        const trackIndex = numberKeyMap[e.key];
+        if (trackIndex !== undefined) {
+          this.toggleTrack(trackIndex, false);
+        }
       } else if ('zxcvbnm'.includes(e.key.toLowerCase())) {
-        // zxcvbnm keys map to tracks 0-6 (1-7) - camera + highlight, no play/pause
+        // zxcvbnm keys map to tracks - camera + highlight, no play/pause
+        // Z=NEXUS(3), X=DRIFT(0), C=STATIC(1), V=VOID(2), B=FRAGMENT(4), N=PULSE(5), M=ECHO(6)
         const keyMap: { [key: string]: number } = {
-          'z': 0, 'x': 1, 'c': 2, 'v': 3, 'b': 4, 'n': 5, 'm': 6
+          'z': 3, 'x': 0, 'c': 1, 'v': 2, 'b': 4, 'n': 5, 'm': 6
         };
         const trackIndex = keyMap[e.key.toLowerCase()];
         if (trackIndex !== undefined) {
@@ -1488,6 +1556,32 @@ class Killer7Scene {
       this.scene.add(aura);
       this.diamondAuras.set(index, aura);
 
+      // Create positional audio for this diamond
+      const positionalAudio = new THREE.PositionalAudio(this.listener);
+      positionalAudio.setRefDistance(10);  // Smaller ref distance for more controlled volume
+      positionalAudio.setRolloffFactor(0.5);  // Gentle rolloff for gradual fade
+      positionalAudio.setMaxDistance(10000);  // Very large max distance - audible from far away
+      positionalAudio.setDistanceModel('exponential');  // Exponential gives more natural, gradual falloff
+      positionalAudio.setLoop(true);
+
+      // Load audio file using AudioLoader
+      const audioFiles = ['014_1.ogg', '015_1.ogg', '016_1.ogg', '007_1.ogg', '020_1.ogg', '018_1.ogg', '019_1.ogg'];
+      const audioLoader = new THREE.AudioLoader();
+      audioLoader.load(`./audio/${audioFiles[index]}`, (buffer) => {
+        positionalAudio.setBuffer(buffer);
+        // Set volume - 25% louder overall, fragment at 75%, nexus extra 75%
+        if (index === 3) {
+          positionalAudio.setVolume(1.25 * 1.75); // Nexus: 2.1875
+        } else if (index === 4) {
+          positionalAudio.setVolume(0.75 * 1.25); // Fragment: 0.9375
+        } else {
+          positionalAudio.setVolume(1.25);
+        }
+      });
+
+      diamond.add(positionalAudio);
+      this.positionalAudios.set(index, positionalAudio);
+
       // Initialize debris array for this diamond
       const debrisArray: THREE.Object3D[] = [];
 
@@ -2162,8 +2256,8 @@ class Killer7Scene {
   }
 
   private toggleTrack(diamondIndex: number, focusCamera: boolean = true): void {
-    const audio = document.getElementById(`audio-${diamondIndex}`) as HTMLAudioElement;
-    if (!audio) return;
+    const positionalAudio = this.positionalAudios.get(diamondIndex);
+    if (!positionalAudio) return;
 
     // If this track is already playing, pause it
     if (this.playingAudios.has(diamondIndex)) {
@@ -2172,7 +2266,7 @@ class Killer7Scene {
     }
 
     // Start new track
-    this.playingAudios.set(diamondIndex, audio);
+    this.playingAudios.set(diamondIndex, positionalAudio);
 
     // Start spinning diamond
     this.spinningDiamonds.add(diamondIndex);
@@ -2183,9 +2277,10 @@ class Killer7Scene {
       this.setTrackNameHighlight(diamondIndex);
     }
 
-    // Play audio
-    audio.currentTime = 0;
-    audio.play().catch(e => console.log('Audio play failed:', e));
+    // Play audio using PositionalAudio
+    if (positionalAudio.buffer) {
+      positionalAudio.play();
+    }
 
     // Update UI (only needed if not focusing camera, since setTrackNameHighlight handles it)
     if (!focusCamera) {
@@ -2195,10 +2290,9 @@ class Killer7Scene {
   }
 
   private stopTrack(diamondIndex: number): void {
-    const audio = this.playingAudios.get(diamondIndex);
-    if (audio) {
-      audio.pause();
-      audio.currentTime = 0;
+    const positionalAudio = this.playingAudios.get(diamondIndex);
+    if (positionalAudio) {
+      positionalAudio.stop();
       this.playingAudios.delete(diamondIndex);
     }
 
