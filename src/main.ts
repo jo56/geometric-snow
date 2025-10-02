@@ -1502,10 +1502,10 @@ class Killer7Scene {
 
       // Create positional audio for this diamond
       const positionalAudio = new THREE.PositionalAudio(this.listener);
-      positionalAudio.setRefDistance(20);
-      positionalAudio.setRolloffFactor(1.5);
-      positionalAudio.setMaxDistance(200);
-      positionalAudio.setDistanceModel('linear');
+      positionalAudio.setRefDistance(10);  // Smaller ref distance for more controlled volume
+      positionalAudio.setRolloffFactor(0.5);  // Gentle rolloff for gradual fade
+      positionalAudio.setMaxDistance(10000);  // Very large max distance - audible from far away
+      positionalAudio.setDistanceModel('exponential');  // Exponential gives more natural, gradual falloff
       positionalAudio.setLoop(true);
 
       // Load audio file using AudioLoader
