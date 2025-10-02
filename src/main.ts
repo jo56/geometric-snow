@@ -92,7 +92,30 @@ class Killer7Scene {
       setTimeout(() => {
         loadingScreen.style.display = 'none';
         this.isLoaded = true;
+        // Show controls tooltip after loading
+        this.showControlsTooltip();
       }, 1500);
+    }
+  }
+
+  private showControlsTooltip(): void {
+    const tooltip = document.getElementById('controls-tooltip');
+    if (tooltip) {
+      tooltip.classList.add('visible');
+    }
+  }
+
+  private hideControlsTooltip(): void {
+    const tooltip = document.getElementById('controls-tooltip');
+    if (tooltip) {
+      tooltip.classList.remove('visible');
+    }
+  }
+
+  private toggleControlsTooltip(): void {
+    const tooltip = document.getElementById('controls-tooltip');
+    if (tooltip) {
+      tooltip.classList.toggle('visible');
     }
   }
 
@@ -178,9 +201,19 @@ class Killer7Scene {
 
     // Animation toggle controls and camera switching
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'q' || e.key === 'Q') {
+      if (e.key === 'h' || e.key === 'H') {
+        this.toggleControlsTooltip();
+      } else if (e.key === 'Escape') {
+        // ESC hides tooltip if visible, otherwise resets camera
+        const tooltip = document.getElementById('controls-tooltip');
+        if (tooltip && tooltip.classList.contains('visible')) {
+          this.hideControlsTooltip();
+        } else {
+          this.resetToOverview();
+        }
+      } else if (e.key === 'q' || e.key === 'Q') {
         this.stopAllTracks();
-      } else if (e.key === 'Escape' || e.key === 'r' || e.key === 'R') {
+      } else if (e.key === 'r' || e.key === 'R') {
         this.resetToOverview();
       } else if (e.key === 'p' || e.key === 'P') {
         // Toggle play/pause for currently selected track
