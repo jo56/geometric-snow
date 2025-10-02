@@ -233,9 +233,10 @@ class Killer7Scene {
           this.toggleTrack(trackIndex, false);
         }
       } else if ('zxcvbnm'.includes(e.key.toLowerCase())) {
-        // zxcvbnm keys map to tracks 0-6 (1-7) - camera + highlight, no play/pause
+        // zxcvbnm keys map to tracks - camera + highlight, no play/pause
+        // Z=NEXUS(3), X=DRIFT(0), C=STATIC(1), V=VOID(2), B=FRAGMENT(4), N=PULSE(5), M=ECHO(6)
         const keyMap: { [key: string]: number } = {
-          'z': 0, 'x': 1, 'c': 2, 'v': 3, 'b': 4, 'n': 5, 'm': 6
+          'z': 3, 'x': 0, 'c': 1, 'v': 2, 'b': 4, 'n': 5, 'm': 6
         };
         const trackIndex = keyMap[e.key.toLowerCase()];
         if (trackIndex !== undefined) {
