@@ -65,11 +65,14 @@
         background: #fff;
         color: #000;
         border: 2px solid #000;
-        padding: 6px 12px;
+        padding: 4px 6px;
         cursor: pointer;
-        min-width: 100px;
+        width: 52px;
         text-align: center;
         user-select: none;
+        font-size: 14px;
+        font-weight: 650;
+        letter-spacing: 0.3px;
       }
 
       .track-name:hover {
@@ -203,7 +206,7 @@
 
       #controls-tooltip .key-row {
         font-family: monospace;
-        margin-bottom: 3px;
+        margin-bottom: 2px;
       }
 
       #controls-tooltip .click-info {
@@ -236,23 +239,23 @@
     KEYBOARD SHORTCUTS:
 
     Focus Camera (select diamond):
-      Z → NEXUS (center diamond)
-      X → DRIFT
-      C → STATIC
-      V → VOID
-      B → FRAGMENT
-      N → PULSE
-      M → ECHO
+      Z → 007_1 (center diamond)
+      X → 014_1
+      C → 015_1
+      V → 016_1
+      B → 020_1
+      N → 018_1
+      M → 019_1
       (Press same key again to reset to overview)
 
     Play/Pause Tracks:
-      1 → NEXUS
-      2 → DRIFT
-      3 → STATIC
-      4 → VOID
-      5 → FRAGMENT
-      6 → PULSE
-      7 → ECHO
+      1 → 007_1
+      2 → 014_1
+      3 → 015_1
+      4 → 016_1
+      5 → 020_1
+      6 → 018_1
+      7 → 019_1
 
     Global Controls:
       Q → Stop all playing tracks
@@ -299,22 +302,22 @@
         <div class="section-title">Keyboard Shortcuts:</div>
         <div class="parallel-keys">
           <div class="key-column">
-            <div class="key-row">1 → Play NEXUS</div>
-            <div class="key-row">2 → Play DRIFT</div>
-            <div class="key-row">3 → Play STATIC</div>
-            <div class="key-row">4 → Play VOID</div>
-            <div class="key-row">5 → Play FRAGMENT</div>
-            <div class="key-row">6 → Play PULSE</div>
-            <div class="key-row">7 → Play ECHO</div>
+            <div class="key-row">1 → Play 007_1</div>
+            <div class="key-row">2 → Play 014_1</div>
+            <div class="key-row">3 → Play 015_1</div>
+            <div class="key-row">4 → Play 016_1</div>
+            <div class="key-row">5 → Play 020_1</div>
+            <div class="key-row">6 → Play 018_1</div>
+            <div class="key-row">7 → Play 019_1</div>
           </div>
           <div class="key-column">
-            <div class="key-row">Z → Focus NEXUS</div>
-            <div class="key-row">X → Focus DRIFT</div>
-            <div class="key-row">C → Focus STATIC</div>
-            <div class="key-row">V → Focus VOID</div>
-            <div class="key-row">B → Focus FRAGMENT</div>
-            <div class="key-row">N → Focus PULSE</div>
-            <div class="key-row">M → Focus ECHO</div>
+            <div class="key-row">Z → Focus 007_1</div>
+            <div class="key-row">X → Focus 014_1</div>
+            <div class="key-row">C → Focus 015_1</div>
+            <div class="key-row">V → Focus 016_1</div>
+            <div class="key-row">B → Focus 020_1</div>
+            <div class="key-row">N → Focus 018_1</div>
+            <div class="key-row">M → Focus 019_1</div>
           </div>
         </div>
       </div>
@@ -332,34 +335,34 @@
     </div>
 
     <div id="app">
-      <div id="music-player" title="See controls in page source (inspect element)">
+      <div id="music-player">
         <div class="track">
-          <div class="track-name" data-diamond="3" title="See controls in page source (inspect element)">NEXUS</div>
-          <div class="play-button" data-diamond="3" title="See controls in page source (inspect element)">▶</div>
+          <div class="track-name" data-diamond="3">007_1</div>
+          <div class="play-button" data-diamond="3">▶</div>
         </div>
         <div class="track">
-          <div class="track-name" data-diamond="0" title="See controls in page source (inspect element)">DRIFT</div>
-          <div class="play-button" data-diamond="0" title="See controls in page source (inspect element)">▶</div>
+          <div class="track-name" data-diamond="0">014_1</div>
+          <div class="play-button" data-diamond="0">▶</div>
         </div>
         <div class="track">
-          <div class="track-name" data-diamond="1" title="See controls in page source (inspect element)">STATIC</div>
-          <div class="play-button" data-diamond="1" title="See controls in page source (inspect element)">▶</div>
+          <div class="track-name" data-diamond="1">015_1</div>
+          <div class="play-button" data-diamond="1">▶</div>
         </div>
         <div class="track">
-          <div class="track-name" data-diamond="2" title="See controls in page source (inspect element)">VOID</div>
-          <div class="play-button" data-diamond="2" title="See controls in page source (inspect element)">▶</div>
+          <div class="track-name" data-diamond="2">016_1</div>
+          <div class="play-button" data-diamond="2">▶</div>
         </div>
         <div class="track">
-          <div class="track-name" data-diamond="4" title="See controls in page source (inspect element)">FRAGMENT</div>
-          <div class="play-button" data-diamond="4" title="See controls in page source (inspect element)">▶</div>
+          <div class="track-name" data-diamond="4">020_1</div>
+          <div class="play-button" data-diamond="4">▶</div>
         </div>
         <div class="track">
-          <div class="track-name" data-diamond="5" title="See controls in page source (inspect element)">PULSE</div>
-          <div class="play-button" data-diamond="5" title="See controls in page source (inspect element)">▶</div>
+          <div class="track-name" data-diamond="5">018_1</div>
+          <div class="play-button" data-diamond="5">▶</div>
         </div>
         <div class="track">
-          <div class="track-name" data-diamond="6" title="See controls in page source (inspect element)">ECHO</div>
-          <div class="play-button" data-diamond="6" title="See controls in page source (inspect element)">▶</div>
+          <div class="track-name" data-diamond="6">019_1</div>
+          <div class="play-button" data-diamond="6">▶</div>
         </div>
       </div>
 

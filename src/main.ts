@@ -1565,7 +1565,7 @@ class Killer7Scene {
       positionalAudio.setLoop(true);
 
       // Load audio file using AudioLoader
-      const audioFiles = ['drift.ogg', 'static.ogg', 'void.ogg', 'nexus.ogg', 'fragment.ogg', 'pulse.ogg', 'echo.ogg'];
+      const audioFiles = ['014_1.ogg', '015_1.ogg', '016_1.ogg', '007_1.ogg', '020_1.ogg', '018_1.ogg', '019_1.ogg'];
       const audioLoader = new THREE.AudioLoader();
       audioLoader.load(`./audio/${audioFiles[index]}`, (buffer) => {
         positionalAudio.setBuffer(buffer);
