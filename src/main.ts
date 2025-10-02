@@ -1569,9 +1569,11 @@ class Killer7Scene {
       const audioLoader = new THREE.AudioLoader();
       audioLoader.load(`./audio/${audioFiles[index]}`, (buffer) => {
         positionalAudio.setBuffer(buffer);
-        // Set fragment (index 4) to 75% volume
+        // Set volume - 25% louder overall, fragment still at 75% of that
         if (index === 4) {
-          positionalAudio.setVolume(0.75);
+          positionalAudio.setVolume(0.75 * 1.25); // Fragment: 0.9375
+        } else {
+          positionalAudio.setVolume(1.25);
         }
       });
 
