@@ -2267,7 +2267,7 @@ class Killer7Scene {
     }
   }
 
-  private toggleTrack(diamondIndex: number, focusCamera: boolean = true): void {
+  private async toggleTrack(diamondIndex: number, focusCamera: boolean = true): Promise<void> {
     const positionalAudio = this.positionalAudios.get(diamondIndex);
     if (!positionalAudio) return;
 
@@ -2275,6 +2275,16 @@ class Killer7Scene {
     if (this.playingAudios.has(diamondIndex)) {
       this.stopTrack(diamondIndex);
       return;
+    }
+
+    // Resume AudioContext on user interaction (required for mobile browsers)
+    if (this.listener.context.state === 'suspended') {
+      try {
+        await this.listener.context.resume();
+        console.log('AudioContext resumed');
+      } catch (err) {
+        console.error('Failed to resume AudioContext:', err);
+      }
     }
 
     // Start new track
