@@ -1585,13 +1585,13 @@ class Killer7Scene {
         audio.preload = 'auto';
         audio.crossOrigin = 'anonymous';
 
-        // Set volume
+        // Set volume - match desktop volumes (HTML5 audio volume is capped at 1.0)
         if (index === 3) {
-          audio.volume = Math.min(1.25 * 1.75, 1.0); // Nexus (capped at 1.0)
+          audio.volume = 1.0; // Nexus: would be 2.1875 on desktop but capped at 1.0
         } else if (index === 4) {
-          audio.volume = 0.75 * 1.25; // Fragment
+          audio.volume = 0.9375; // Fragment: 0.75 * 1.25
         } else {
-          audio.volume = 1.0;
+          audio.volume = 1.0; // Normal tracks: 1.25 on desktop but capped at 1.0
         }
 
         audio.load();
