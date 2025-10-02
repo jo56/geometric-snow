@@ -102,6 +102,7 @@ class Killer7Scene {
     const tooltip = document.getElementById('controls-tooltip');
     if (tooltip) {
       tooltip.classList.add('visible');
+      this.setupTooltipClickOutside();
     }
   }
 
@@ -115,8 +116,29 @@ class Killer7Scene {
   private toggleControlsTooltip(): void {
     const tooltip = document.getElementById('controls-tooltip');
     if (tooltip) {
-      tooltip.classList.toggle('visible');
+      if (tooltip.classList.contains('visible')) {
+        this.hideControlsTooltip();
+      } else {
+        this.showControlsTooltip();
+      }
     }
+  }
+
+  private setupTooltipClickOutside(): void {
+    const tooltip = document.getElementById('controls-tooltip');
+    if (!tooltip) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (tooltip && !tooltip.contains(e.target as Node) && tooltip.classList.contains('visible')) {
+        this.hideControlsTooltip();
+        document.removeEventListener('click', handleClickOutside);
+      }
+    };
+
+    // Add listener after a short delay to prevent immediate dismissal
+    setTimeout(() => {
+      document.addEventListener('click', handleClickOutside);
+    }, 100);
   }
 
   private init(): void {
