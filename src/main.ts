@@ -1513,6 +1513,10 @@ class Killer7Scene {
       const audioLoader = new THREE.AudioLoader();
       audioLoader.load(`./audio/${audioFiles[index]}`, (buffer) => {
         positionalAudio.setBuffer(buffer);
+        // Set fragment (index 4) to 75% volume
+        if (index === 4) {
+          positionalAudio.setVolume(0.75);
+        }
       });
 
       diamond.add(positionalAudio);
