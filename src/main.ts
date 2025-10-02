@@ -22,7 +22,9 @@ class Killer7Scene {
   private raycaster = new THREE.Raycaster();
   private mouse = new THREE.Vector2();
   private spinningDiamonds = new Set<number>();
-  private playingAudios: Map<number, HTMLAudioElement> = new Map();
+  private listener!: THREE.AudioListener;
+  private playingAudios: Map<number, THREE.PositionalAudio> = new Map();
+  private positionalAudios: Map<number, THREE.PositionalAudio> = new Map();
   private focusedDiamond: number = -1;
   private particles!: THREE.Points;
   private particleVelocities!: Float32Array;
@@ -115,6 +117,10 @@ class Killer7Scene {
     // Start with a different position for the animation to work
     this.camera.position.set(20, 20, 20);
 
+    // Audio listener for spatial audio
+    this.listener = new THREE.AudioListener();
+    this.camera.add(this.listener);
+
     // Optimized Renderer
     this.renderer = new THREE.WebGLRenderer({
       antialias: false,
@@ -185,8 +191,14 @@ class Killer7Scene {
         }
       } else if (e.key >= '1' && e.key <= '7') {
         // Number keys for play/pause without camera focus
-        const trackIndex = parseInt(e.key) - 1;
-        this.toggleTrack(trackIndex, false);
+        // 1=NEXUS(3), 2=DRIFT(0), 3=STATIC(1), 4=VOID(2), 5=FRAGMENT(4), 6=PULSE(5), 7=ECHO(6)
+        const numberKeyMap: { [key: string]: number } = {
+          '1': 3, '2': 0, '3': 1, '4': 2, '5': 4, '6': 5, '7': 6
+        };
+        const trackIndex = numberKeyMap[e.key];
+        if (trackIndex !== undefined) {
+          this.toggleTrack(trackIndex, false);
+        }
       } else if ('zxcvbnm'.includes(e.key.toLowerCase())) {
         // zxcvbnm keys map to tracks 0-6 (1-7) - camera + highlight, no play/pause
         const keyMap: { [key: string]: number } = {
@@ -1488,6 +1500,24 @@ class Killer7Scene {
       this.scene.add(aura);
       this.diamondAuras.set(index, aura);
 
+      // Create positional audio for this diamond
+      const positionalAudio = new THREE.PositionalAudio(this.listener);
+      positionalAudio.setRefDistance(20);
+      positionalAudio.setRolloffFactor(1.5);
+      positionalAudio.setMaxDistance(200);
+      positionalAudio.setDistanceModel('linear');
+      positionalAudio.setLoop(true);
+
+      // Load audio file using AudioLoader
+      const audioFiles = ['drift.ogg', 'static.ogg', 'void.ogg', 'nexus.ogg', 'fragment.ogg', 'pulse.ogg', 'echo.ogg'];
+      const audioLoader = new THREE.AudioLoader();
+      audioLoader.load(`./audio/${audioFiles[index]}`, (buffer) => {
+        positionalAudio.setBuffer(buffer);
+      });
+
+      diamond.add(positionalAudio);
+      this.positionalAudios.set(index, positionalAudio);
+
       // Initialize debris array for this diamond
       const debrisArray: THREE.Object3D[] = [];
 
@@ -2162,8 +2192,8 @@ class Killer7Scene {
   }
 
   private toggleTrack(diamondIndex: number, focusCamera: boolean = true): void {
-    const audio = document.getElementById(`audio-${diamondIndex}`) as HTMLAudioElement;
-    if (!audio) return;
+    const positionalAudio = this.positionalAudios.get(diamondIndex);
+    if (!positionalAudio) return;
 
     // If this track is already playing, pause it
     if (this.playingAudios.has(diamondIndex)) {
@@ -2172,7 +2202,7 @@ class Killer7Scene {
     }
 
     // Start new track
-    this.playingAudios.set(diamondIndex, audio);
+    this.playingAudios.set(diamondIndex, positionalAudio);
 
     // Start spinning diamond
     this.spinningDiamonds.add(diamondIndex);
@@ -2183,9 +2213,10 @@ class Killer7Scene {
       this.setTrackNameHighlight(diamondIndex);
     }
 
-    // Play audio
-    audio.currentTime = 0;
-    audio.play().catch(e => console.log('Audio play failed:', e));
+    // Play audio using PositionalAudio
+    if (positionalAudio.buffer) {
+      positionalAudio.play();
+    }
 
     // Update UI (only needed if not focusing camera, since setTrackNameHighlight handles it)
     if (!focusCamera) {
@@ -2195,10 +2226,9 @@ class Killer7Scene {
   }
 
   private stopTrack(diamondIndex: number): void {
-    const audio = this.playingAudios.get(diamondIndex);
-    if (audio) {
-      audio.pause();
-      audio.currentTime = 0;
+    const positionalAudio = this.playingAudios.get(diamondIndex);
+    if (positionalAudio) {
+      positionalAudio.stop();
       this.playingAudios.delete(diamondIndex);
     }
 
