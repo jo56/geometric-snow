@@ -6,7 +6,8 @@
       "Bash(npm run dev:*)",
       "Bash(npm run build:*)",
       "WebSearch",
-      "WebFetch(domain:discourse.threejs.org)"
+      "WebFetch(domain:discourse.threejs.org)",
+      "Bash(copy:*)"
     ],
     "deny": [],
     "ask": []

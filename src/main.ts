@@ -34,6 +34,10 @@ class Killer7Scene {
     this.initWithLoading();
   }
 
+  private isMobileDevice(): boolean {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  }
+
   private async initWithLoading(): Promise<void> {
     this.updateLoadingProgress(10, 'Initializing renderer...');
     this.init();
@@ -1565,9 +1569,17 @@ class Killer7Scene {
       positionalAudio.setLoop(true);
 
       // Load audio file using AudioLoader
-      const audioFiles = ['014_1.ogg', '015_1.ogg', '016_1.ogg', '007_1.ogg', '020_1.ogg', '018_1.ogg', '019_1.ogg'];
+      const isMobile = this.isMobileDevice();
+      const audioFiles = isMobile 
+        ? ['014_1.m4a', '015_1.m4a', '016_1.m4a', '007_1.m4a', '020_1.m4a', '018_1.m4a', '019_1.m4a']
+        : ['014_1.ogg', '015_1.ogg', '016_1.ogg', '007_1.ogg', '020_1.ogg', '018_1.ogg', '019_1.ogg'];
+      const audioPath = isMobile ? './mobile_audio' : './audio';
+      
+      if (index === 0) {
+        console.log(`Audio loading: ${isMobile ? 'Mobile' : 'Desktop'} device detected, using ${audioPath}/${audioFiles[index]}`);
+      }
       const audioLoader = new THREE.AudioLoader();
-      audioLoader.load(`./audio/${audioFiles[index]}`, (buffer) => {
+      audioLoader.load(`${audioPath}/${audioFiles[index]}`, (buffer) => {
         positionalAudio.setBuffer(buffer);
         // Set volume - 25% louder overall, fragment at 75%, nexus extra 75%
         if (index === 3) {
