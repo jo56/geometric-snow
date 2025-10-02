@@ -7,7 +7,9 @@
       "Bash(npm run build:*)",
       "WebSearch",
       "WebFetch(domain:discourse.threejs.org)",
-      "Bash(copy:*)"
+      "Bash(copy:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ],
     "deny": [],
     "ask": []

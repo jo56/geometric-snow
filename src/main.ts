@@ -23,14 +23,17 @@ class Killer7Scene {
   private mouse = new THREE.Vector2();
   private spinningDiamonds = new Set<number>();
   private listener!: THREE.AudioListener;
-  private playingAudios: Map<number, THREE.PositionalAudio> = new Map();
+  private playingAudios: Map<number, THREE.PositionalAudio | HTMLAudioElement> = new Map();
   private positionalAudios: Map<number, THREE.PositionalAudio> = new Map();
+  private htmlAudioElements: Map<number, HTMLAudioElement> = new Map();
   private focusedDiamond: number = -1;
   private particles!: THREE.Points;
   private particleVelocities!: Float32Array;
   private isLoaded = false;
+  private isMobile: boolean = false;
 
   constructor() {
+    this.isMobile = this.isMobileDevice();
     this.initWithLoading();
   }
 
@@ -1568,34 +1571,52 @@ class Killer7Scene {
       positionalAudio.setDistanceModel('exponential');  // Exponential gives more natural, gradual falloff
       positionalAudio.setLoop(true);
 
-      // Load audio file using AudioLoader
-      const isMobile = this.isMobileDevice();
-      const audioFiles = isMobile
+      // Load audio file - use HTML5 audio for mobile, Web Audio API for desktop
+      const audioFiles = this.isMobile
         ? ['014_1.m4a', '015_1.m4a', '016_1.m4a', '007_1.m4a', '020_1.m4a', '018_1.m4a', '019_1.m4a']
         : ['014_1.ogg', '015_1.ogg', '016_1.ogg', '007_1.ogg', '020_1.ogg', '018_1.ogg', '019_1.ogg'];
-      const audioPath = isMobile ? './mobile_audio' : './audio';
+      const audioPath = this.isMobile ? './mobile_audio' : './audio';
 
-      if (index === 0) {
-        console.log(`Audio loading: ${isMobile ? 'Mobile' : 'Desktop'} device detected, using ${audioPath}/${audioFiles[index]}`);
-      }
-      const audioLoader = new THREE.AudioLoader();
-      audioLoader.load(
-        `${audioPath}/${audioFiles[index]}`,
-        (buffer) => {
-          positionalAudio.setBuffer(buffer);
-          // Set volume - 25% louder overall, fragment at 75%, nexus extra 75%
-          if (index === 3) {
-            positionalAudio.setVolume(1.25 * 1.75); // Nexus: 2.1875
-          } else if (index === 4) {
-            positionalAudio.setVolume(0.75 * 1.25); // Fragment: 0.9375
-          } else {
-            positionalAudio.setVolume(1.25);
-          }
+      if (this.isMobile) {
+        // Mobile: Use HTML5 Audio for better compatibility
+        const audio = new Audio();
+        audio.src = `${audioPath}/${audioFiles[index]}`;
+        audio.loop = true;
+        audio.preload = 'auto';
+        audio.crossOrigin = 'anonymous';
+
+        // Set volume
+        if (index === 3) {
+          audio.volume = Math.min(1.25 * 1.75, 1.0); // Nexus (capped at 1.0)
+        } else if (index === 4) {
+          audio.volume = 0.75 * 1.25; // Fragment
+        } else {
+          audio.volume = 1.0;
         }
-      );
 
-      diamond.add(positionalAudio);
-      this.positionalAudios.set(index, positionalAudio);
+        audio.load();
+        this.htmlAudioElements.set(index, audio);
+      } else {
+        // Desktop: Use Web Audio API / PositionalAudio
+        const audioLoader = new THREE.AudioLoader();
+        audioLoader.load(
+          `${audioPath}/${audioFiles[index]}`,
+          (buffer) => {
+            positionalAudio.setBuffer(buffer);
+            // Set volume - 25% louder overall, fragment at 75%, nexus extra 75%
+            if (index === 3) {
+              positionalAudio.setVolume(1.25 * 1.75); // Nexus: 2.1875
+            } else if (index === 4) {
+              positionalAudio.setVolume(0.75 * 1.25); // Fragment: 0.9375
+            } else {
+              positionalAudio.setVolume(1.25);
+            }
+          }
+        );
+
+        diamond.add(positionalAudio);
+        this.positionalAudios.set(index, positionalAudio);
+      }
 
       // Initialize debris array for this diamond
       const debrisArray: THREE.Object3D[] = [];
@@ -2277,56 +2298,53 @@ class Killer7Scene {
   }
 
   private toggleTrack(diamondIndex: number, focusCamera: boolean = true): void {
-    const positionalAudio = this.positionalAudios.get(diamondIndex);
-    if (!positionalAudio) return;
-
     // If this track is already playing, pause it
     if (this.playingAudios.has(diamondIndex)) {
       this.stopTrack(diamondIndex);
       return;
     }
 
-    // Resume AudioContext synchronously in the user gesture (required for iOS)
-    if (this.listener.context.state === 'suspended') {
-      this.listener.context.resume();
+    // Start spinning diamond
+    this.spinningDiamonds.add(diamondIndex);
+
+    // Focus camera on diamond (optional)
+    if (focusCamera) {
+      this.focusOnDiamond(diamondIndex);
+      this.setTrackNameHighlight(diamondIndex);
     }
 
-    // For iOS: ensure the audio source is connected properly
-    // THREE.PositionalAudio creates a new source node each time play() is called
-    // but we need to ensure the context is running first
-    if (positionalAudio.buffer) {
-      // Stop first to ensure we get a fresh source node
-      if (positionalAudio.isPlaying) {
-        positionalAudio.stop();
+    if (this.isMobile) {
+      // Mobile: Use HTML5 Audio
+      const audio = this.htmlAudioElements.get(diamondIndex);
+      if (audio) {
+        audio.play();
+        this.playingAudios.set(diamondIndex, audio);
       }
-
-      // Start new track
-      this.playingAudios.set(diamondIndex, positionalAudio);
-
-      // Start spinning diamond
-      this.spinningDiamonds.add(diamondIndex);
-
-      // Focus camera on diamond (optional)
-      if (focusCamera) {
-        this.focusOnDiamond(diamondIndex);
-        this.setTrackNameHighlight(diamondIndex);
+    } else {
+      // Desktop: Use PositionalAudio
+      const positionalAudio = this.positionalAudios.get(diamondIndex);
+      if (positionalAudio && positionalAudio.buffer) {
+        positionalAudio.play();
+        this.playingAudios.set(diamondIndex, positionalAudio);
       }
-
-      // Play immediately - this must happen synchronously in the click handler for iOS
-      positionalAudio.play();
-
-      // Update UI
-      if (!focusCamera) {
-        this.updateTrackNameUI(diamondIndex);
-      }
-      this.updatePlayButtonUI(diamondIndex, true);
     }
+
+    // Update UI
+    if (!focusCamera) {
+      this.updateTrackNameUI(diamondIndex);
+    }
+    this.updatePlayButtonUI(diamondIndex, true);
   }
 
   private stopTrack(diamondIndex: number): void {
-    const positionalAudio = this.playingAudios.get(diamondIndex);
-    if (positionalAudio) {
-      positionalAudio.stop();
+    const audio = this.playingAudios.get(diamondIndex);
+    if (audio) {
+      if (audio instanceof HTMLAudioElement) {
+        audio.pause();
+        audio.currentTime = 0;
+      } else {
+        audio.stop();
+      }
       this.playingAudios.delete(diamondIndex);
     }
 
