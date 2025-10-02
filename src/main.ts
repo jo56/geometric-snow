@@ -2227,6 +2227,8 @@ class Killer7Scene {
 
   private setupMusicPlayer(): void {
     const handleTrackNameClick = (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
       const diamondIndex = parseInt((e.target as HTMLElement).dataset.diamond || '0');
 
       if (diamondIndex === this.focusedDiamond) {
@@ -2240,20 +2242,28 @@ class Killer7Scene {
     };
 
     const handlePlayButtonClick = (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
       const diamondIndex = parseInt((e.target as HTMLElement).dataset.diamond || '0');
       this.toggleTrack(diamondIndex, false);
     };
 
-    // Track name click handlers (camera view only)
+    // Track name handlers
     document.querySelectorAll('.track-name').forEach(trackName => {
-      trackName.addEventListener('click', handleTrackNameClick);
-      trackName.addEventListener('touchend', handleTrackNameClick);
+      if (this.isMobile) {
+        trackName.addEventListener('touchend', handleTrackNameClick, { passive: false });
+      } else {
+        trackName.addEventListener('click', handleTrackNameClick);
+      }
     });
 
-    // Play button click handlers (spinning + audio, no camera)
+    // Play button handlers
     document.querySelectorAll('.play-button').forEach(playButton => {
-      playButton.addEventListener('click', handlePlayButtonClick);
-      playButton.addEventListener('touchend', handlePlayButtonClick);
+      if (this.isMobile) {
+        playButton.addEventListener('touchend', handlePlayButtonClick, { passive: false });
+      } else {
+        playButton.addEventListener('click', handlePlayButtonClick);
+      }
     });
   }
 
