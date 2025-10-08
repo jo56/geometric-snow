@@ -151,3 +151,6 @@ auth.json
 
 # Plan file (contains implementation details)
 plan.txt
+
+# Claude Code configuration
+.claude/
