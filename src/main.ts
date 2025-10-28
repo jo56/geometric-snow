@@ -61,6 +61,7 @@ class GeometricSnowScene {
     // Adjusted to be higher to compensate for raised diamonds
     const originalPos = new THREE.Vector3(-138.64, 161.27, 41.32);
     const originalTarget = new THREE.Vector3(45.28, 96.57, -25.90);
+
     const direction = originalPos.clone().sub(originalTarget).normalize();
     const overviewPosition = originalTarget.clone().add(direction.multiplyScalar(originalPos.distanceTo(originalTarget)));
     const overviewTarget = originalTarget.clone();
