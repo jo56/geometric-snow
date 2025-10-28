@@ -153,4 +153,4 @@ auth.json
 plan.txt
 
 # Claude Code configuration
-.claude/
+.claude

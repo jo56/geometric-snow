@@ -4,7 +4,7 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js';
 
-class Killer7Scene {
+class GeometricSnowScene {
   private renderer!: THREE.WebGLRenderer;
   private scene!: THREE.Scene;
   private camera!: THREE.PerspectiveCamera;
@@ -2529,5 +2529,5 @@ class Killer7Scene {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  new Killer7Scene();
+  new GeometricSnowScene();
 });
