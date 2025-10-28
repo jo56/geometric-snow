@@ -330,6 +330,7 @@ class GeometricSnowScene {
 
     // Log camera position when mouse is released after dragging
     window.addEventListener('mouseup', () => {
+      /*
       console.log('=== Camera Position ===');
       console.log('Position:', this.camera.position);
       console.log('Target:', this.controls.target);
@@ -338,7 +339,7 @@ class GeometricSnowScene {
       console.log(`const originalTarget = new THREE.Vector3(${this.controls.target.x.toFixed(2)}, ${this.controls.target.y.toFixed(2)}, ${this.controls.target.z.toFixed(2)});`);
       console.log('this.camera.position.copy(originalPos);');
       console.log('this.controls.target.copy(originalTarget);');
-    });
+    });*/
 
     // Music player event listeners
     this.setupMusicPlayer();
