@@ -1,8 +1,16 @@
 # Geometric Snow
 
-**[geometric-snow.pages.dev](https://geometric-snow.pages.dev)**
+  <div align="center">
+      <a href="https://geometric-snow.pages.dev" target="_blank">
+          <img src="assets/snow-preview.png" alt="snow preview">
+      </a>
+      <br>
+      <a href="https://geometric-snow.pages.dev" target="_blank">
+          <b>https://geometric-snow.pages.dev</b>
+      </a>
+  </div>
 
-An interactive 3D audiovisual experience built with Three.js featuring spatial audio and geometric visualizations.
+
 
 
 ## Installation
