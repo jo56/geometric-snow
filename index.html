@@ -2,7 +2,6 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Geometric Snow</title>
     <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
@@ -29,18 +28,6 @@
         width: 100vw;
         height: 100vh;
         position: relative;
-      }
-
-      #ui {
-        position: absolute;
-        top: 20px;
-        left: 20px;
-        z-index: 100;
-        background: rgba(0, 0, 0, 0.8);
-        padding: 20px;
-        border: 2px solid #fff;
-        font-size: 14px;
-        display: none; /* Hide the UI by default */
       }
 
       #music-player {
@@ -106,47 +93,6 @@
       .play-button.playing {
         background: #000;
         color: #fff;
-      }
-
-      .control-group {
-        margin-bottom: 15px;
-      }
-
-      .control-group:last-child {
-        margin-bottom: 0;
-      }
-
-      label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: bold;
-      }
-
-      input[type="range"] {
-        width: 200px;
-        margin-right: 10px;
-      }
-
-      button {
-        background: #fff;
-        color: #000;
-        border: none;
-        padding: 8px 16px;
-        margin-right: 8px;
-        margin-bottom: 8px;
-        cursor: pointer;
-        font-weight: bold;
-        font-size: 12px;
-      }
-
-      button:hover {
-        background: #ccc;
-      }
-
-      button.active {
-        background: #000;
-        color: #fff;
-        border: 2px solid #fff;
       }
 
       #controls-tooltip {
@@ -230,46 +176,6 @@
     </style>
   </head>
   <body>
-    <!--
-    ═══════════════════════════════════════════════════════════════
-    CONTROLS & KEYBINDS
-    ═══════════════════════════════════════════════════════════════
-
-    TRACK CONTROLS:
-    - Click track name (DRIFT, STATIC, etc.) → Focus camera on diamond
-    - Click play button (▶) → Play/pause track
-    - Click on diamond in 3D scene → Focus camera on diamond
-
-    KEYBOARD SHORTCUTS:
-
-    Focus Camera (select diamond):
-      Z → 007_1 (center diamond)
-      X → 014_1
-      C → 015_1
-      V → 016_1
-      B → 020_1
-      N → 018_1
-      M → 019_1
-      (Press same key again to reset to overview)
-
-    Play/Pause Tracks:
-      1 → 007_1
-      2 → 014_1
-      3 → 015_1
-      4 → 016_1
-      5 → 020_1
-      6 → 018_1
-      7 → 019_1
-
-    Global Controls:
-      Q → Stop all playing tracks
-      R / ESC → Reset camera to overview
-      P → Play/pause currently focused track
-      H → Toggle help menu
-
-    ═══════════════════════════════════════════════════════════════
-    -->
-
     <!-- Loading Screen -->
     <div id="loading-screen" style="
       position: fixed;
@@ -369,26 +275,6 @@
         <div class="track">
           <div class="track-name" data-diamond="6">019_1</div>
           <div class="play-button" data-diamond="6">▶</div>
-        </div>
-      </div>
-
-      <div id="ui">
-        <div class="control-group">
-          <label>Outline Thickness</label>
-          <input type="range" id="outlineThickness" min="0" max="10" value="3" step="0.1">
-          <span id="outlineValue">3.0</span>
-        </div>
-
-        <div class="control-group">
-          <label>Shading Mode</label>
-          <button id="toonShader" class="active">Toon</button>
-          <button id="stepShader">Step</button>
-        </div>
-
-        <div class="control-group">
-          <label>Lighting</label>
-          <button id="rimLight">Toggle Rim Light</button>
-          <button id="smaaToggle" class="active">SMAA AA</button>
         </div>
       </div>
     </div>
