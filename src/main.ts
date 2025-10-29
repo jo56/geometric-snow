@@ -7,7 +7,7 @@ import { AudioManager } from './audio/AudioManager';
 import { UIManager } from './ui/UIManager';
 import { PostProcessingManager } from './effects/PostProcessing';
 import { DiamondManager } from './effects/Diamonds';
-import { KEY_TO_DIAMOND_MAP, NUMBER_KEY_TO_DIAMOND_MAP } from './utils/Constants';
+import { KEY_TO_DIAMOND_MAP, NUMBER_KEY_TO_DIAMOND_MAP, TIMING_CONFIG } from './utils/Constants';
 
 class GeometricSnowScene {
   private rendererManager: RendererManager;
@@ -61,19 +61,9 @@ class GeometricSnowScene {
   }
 
   private async initWithLoading(): Promise<void> {
-    this.uiManager.updateLoadingProgress(10, 'Initializing renderer...');
     this.init();
-
-    this.uiManager.updateLoadingProgress(30, 'Creating scene geometry...');
     await this.createSceneAsync();
-
-    this.uiManager.updateLoadingProgress(70, 'Setting up post-processing...');
-
-    this.uiManager.updateLoadingProgress(90, 'Finalizing...');
     this.animate();
-
-    this.uiManager.updateLoadingProgress(100, 'Complete!');
-
     this.cameraManager.resetToOverview();
 
     setTimeout(() => {
@@ -81,8 +71,8 @@ class GeometricSnowScene {
       this.uiManager.hideLoadingScreen(() => {
         this.isLoaded = true;
       });
-      this.uiManager.fadeInMusicPlayer(2000);
-    }, 500);
+      this.uiManager.fadeInMusicPlayer(TIMING_CONFIG.menuFadeDelay);
+    }, TIMING_CONFIG.canvasFadeDelay);
   }
 
   private init(): void {
@@ -105,9 +95,6 @@ class GeometricSnowScene {
     window.addEventListener('resize', () => this.handleResize());
     window.addEventListener('keydown', (e) => this.handleKeyDown(e));
     window.addEventListener('click', (e) => this.onMouseClick(e));
-    window.addEventListener('mouseup', () => {
-      // Camera position logging (commented out for production)
-    });
 
     this.uiManager.setupMusicPlayer(
       (diamondIndex) => this.handleTrackNameClick(diamondIndex),
@@ -293,14 +280,12 @@ class GeometricSnowScene {
     const diamondPos = diamond.position;
 
     this.cameraManager.focusOnPosition(diamondPos, diamondIndex);
-    console.log(`Focusing on diamond ${diamondIndex}`);
   }
 
   private resetToOverview(): void {
     this.uiManager.setFocusedDiamond(-1);
     this.uiManager.clearUISelections();
     this.cameraManager.resetToOverview();
-    console.log('Overview camera activated');
   }
 
   private toggleTrack(diamondIndex: number, focusCamera: boolean = true): void {

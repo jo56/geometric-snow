@@ -33,6 +33,10 @@ export class AudioManager {
         audio.volume = 1.0;
       }
 
+      audio.addEventListener('error', () => {
+        console.error(`Failed to load audio for diamond ${diamondIndex}`);
+      });
+
       audio.load();
       this.htmlAudioElements.set(diamondIndex, audio);
     } else {
@@ -55,6 +59,10 @@ export class AudioManager {
           } else {
             positionalAudio.setVolume(1.25);
           }
+        },
+        undefined,
+        (error) => {
+          console.error(`Failed to load audio for diamond ${diamondIndex}:`, error);
         }
       );
 

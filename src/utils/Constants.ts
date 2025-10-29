@@ -62,3 +62,24 @@ export const PARTICLE_CONFIG = {
 };
 
 export const LIGHT_DIRECTION = { x: 5, y: 10, z: 5 };
+
+export const ANIMATION_CONFIG = {
+  diamondRotationSpeed: 0.5,
+  particleFallSpeed: { min: 0.5, max: 1.5 },
+  particleDriftSpeed: 0.4,
+  debrisOrbitSpeed: 0.7,
+  auraGlowSpeed: 0.8
+};
+
+export const TIMING_CONFIG = {
+  canvasFadeDelay: 500,
+  menuFadeDelay: 2000,
+  loadingFadeOut: 1500
+};
+
+export const SHADOW_CONFIG = {
+  mapSize: 1024,
+  cameraNear: 1,
+  cameraFar: 1200,
+  cameraSize: 600
+};

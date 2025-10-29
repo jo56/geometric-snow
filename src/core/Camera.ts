@@ -61,9 +61,7 @@ export class CameraManager {
     );
     const overviewTarget = originalTarget.clone();
 
-    this.camera.position.copy(overviewPosition);
-    this.controls.target.copy(overviewTarget);
-    this.controls.update();
+    this.animateToPosition(overviewPosition, overviewTarget, 2000);
   }
 
   public focusOnPosition(position: THREE.Vector3, diamondIndex: number): void {

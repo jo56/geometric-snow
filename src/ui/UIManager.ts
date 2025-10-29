@@ -6,10 +6,6 @@ export class UIManager {
     this.isMobile = isMobile;
   }
 
-  public updateLoadingProgress(_progress: number, _text: string): void {
-    // Loading spinner doesn't need progress updates
-  }
-
   public hideLoadingScreen(onComplete: () => void): void {
     const loadingScreen = document.getElementById('loading-screen');
     if (loadingScreen) {
